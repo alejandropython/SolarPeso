@@ -1,0 +1,3498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peso Paradox Orbital Research System v6</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            background: #060912;
+        }
+        canvas { display: block; background: #060912; cursor: crosshair; }
+
+        /* ── Header: research instrument, not SaaS ── */
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: rgba(10, 14, 28, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 24px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #c8cee0;
+        }
+
+        #title {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.6px;
+            color: #e8ecf4;
+            text-transform: uppercase;
+        }
+        #stats { font-size: 11px; color: rgba(200,206,224,0.5); font-weight: 400; letter-spacing: 0.3px; }
+
+        /* ── Controls panel: calm, airy ── */
+        #controls {
+            position: fixed;
+            top: 66px;
+            left: 16px;
+            width: 260px;
+            background: rgba(14, 18, 35, 0.88);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 50;
+            max-height: 75vh;
+            overflow-y: auto;
+            color: #b8bfd0;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        #controls h3 {
+            margin: 16px 0 8px 0;
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(200,206,224,0.45);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            padding-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        #controls h3:first-child { margin-top: 0; }
+
+        button {
+            background: rgba(255,255,255,0.07);
+            color: #b8bfd0;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            margin: 3px 2px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            letter-spacing: 0.2px;
+        }
+
+        button:hover { background: rgba(255,255,255,0.12); color: #e8ecf4; }
+        button.active {
+            background: rgba(124, 58, 237, 0.25);
+            color: #c4b5fd;
+            border-color: rgba(124, 58, 237, 0.4);
+        }
+
+        .checkbox-group { margin: 6px 0; }
+        label {
+            display: block;
+            margin: 4px 0;
+            cursor: pointer;
+            color: #8e95a8;
+            font-size: 11px;
+            transition: color 0.1s;
+        }
+        label:hover { color: #c8cee0; }
+        input[type="checkbox"] { margin-right: 6px; accent-color: #7c3aed; }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 6px 0;
+            accent-color: #7c3aed;
+        }
+
+        .range-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: rgba(200,206,224,0.4);
+            margin-bottom: 2px;
+        }
+
+        /* ── Legend: secondary, quieter ── */
+        #legend {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(10, 14, 28, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px 14px;
+            z-index: 50;
+            font-size: 10px;
+            color: #8e95a8;
+            max-height: 35vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: color 0.1s;
+        }
+        .legend-item:hover { color: #e8ecf4; }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: none;
+        }
+
+        /* ── Tooltip: institutional ── */
+        #tooltip {
+            position: fixed;
+            background: rgba(10, 14, 28, 0.96);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 11px;
+            color: #c8cee0;
+            z-index: 200;
+            max-width: 400px;
+            pointer-events: none;
+            display: none;
+            line-height: 1.5;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .tooltip-section {
+            margin: 8px 0 0 0;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .tooltip-section:first-child {
+            margin-top: 0;
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .tooltip-label {
+            color: rgba(200,206,224,0.5);
+            font-weight: 600;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 3px;
+        }
+
+        /* ── Denaris panel: premium proprietary ── */
+        #denaris-panel {
+            position: fixed;
+            top: 66px;
+            right: 16px;
+            background: rgba(10, 14, 28, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 11px;
+            color: #c8cee0;
+            z-index: 200;
+            max-width: 320px;
+            display: none;
+            line-height: 1.5;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.06);
+        }
+
+        #denaris-panel .title {
+            color: #d4af37;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ── Scrollbar: subtle ── */
+        .scrollbar { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+        .scrollbar::-webkit-scrollbar { width: 4px; }
+        .scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+        /* ── HUD camera display ── */
+        #hud-display {
+            position: fixed;
+            top: 56px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 28, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 6px 20px;
+            z-index: 45;
+            font-size: 10px;
+            color: #a78bfa;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <div>
+        <div id="title">Peso Paradox — Orbital Research System V6</div>
+        <div id="stats"></div>
+    </div>
+</div>
+
+<div id="hud-display"></div>
+
+<div id="controls" class="scrollbar">
+    <h3>Camera View</h3>
+    <button id="btn-top" class="active">Top-Down</button>
+    <button id="btn-side">Tilted</button>
+    <button id="btn-orbit">Auto Orbit</button>
+    <button id="btn-pause-orbit" style="display:none;">Pause</button>
+
+    <h3>Zoom <span id="zoom-level" style="color:#c8cee0;">1.0x</span></h3>
+    <button id="btn-zoom-in">+ Zoom In</button>
+    <button id="btn-zoom-out">- Zoom Out</button>
+    <button id="btn-zoom-reset">Reset</button>
+    <div style="font-size:10px; color:#a78bfa; margin-top:4px;">Scroll to zoom · Drag to rotate · Shift+drag to pan</div>
+
+    <h3>Display</h3>
+    <div class="checkbox-group">
+        <label><input type="checkbox" id="show-bull" checked> Bull Case Nodes</label>
+        <label><input type="checkbox" id="show-labels" checked> Labels</label>
+        <label><input type="checkbox" id="show-edges" checked> Orbital Paths</label>
+        <label><input type="checkbox" id="show-rings" checked> Orbit Rings</label>
+    </div>
+
+    <h3>Edge Layers</h3>
+    <div class="checkbox-group">
+        <label><input type="checkbox" class="edge-type-filter" value="mechanism" checked> <span style="color:#ef4444;">●</span> Causal Mechanism</label>
+        <label><input type="checkbox" class="edge-type-filter" value="theory" checked> <span style="color:#8b7cc8;">●</span> Theory Support</label>
+        <label><input type="checkbox" class="edge-type-filter" value="data_lineage" checked> <span style="color:#3db9a0;">●</span> Data Lineage</label>
+        <label><input type="checkbox" class="edge-type-filter" value="counter" checked> <span style="color:#d4af37;">●</span> Counter-Thesis</label>
+        <label><input type="checkbox" class="edge-type-filter" value="correlation" checked> <span style="color:#5b8fc9;opacity:0.5;">●</span> Correlation</label>
+    </div>
+
+    <h3>Filter by Section</h3>
+    <div class="checkbox-group">
+        <label><input type="checkbox" class="section-filter" value="S1" checked> S1: Carry Trade</label>
+        <label><input type="checkbox" class="section-filter" value="S2" checked> S2: Real Economy</label>
+        <label><input type="checkbox" class="section-filter" value="S3" checked> S3: Capital Flows</label>
+        <label><input type="checkbox" class="section-filter" value="S4" checked> S4: Macro Stability</label>
+        <label><input type="checkbox" class="section-filter" value="S5" checked> S5: Spillovers</label>
+    </div>
+
+    <h3>Time Window</h3>
+    <div class="range-label">
+        <span>From:</span>
+        <span id="year-from">1970</span>
+    </div>
+    <input type="range" id="slider-from" min="1970" max="2026" value="1970">
+    <div class="range-label">
+        <span>To:</span>
+        <span id="year-to">2026</span>
+    </div>
+    <input type="range" id="slider-to" min="1970" max="2026" value="2026">
+
+    <h3>Physics</h3>
+    <label style="color: #16a34a;">● Simulation: <span id="sim-state">Active</span></label>
+    <button id="btn-freeze">Freeze</button>
+    <button id="btn-reset">Reset Layout</button>
+
+    <h3>Network Stats</h3>
+    <div id="network-stats" style="font-size: 10px; color: #a78bfa;">
+        <div>Nodes: <span id="stat-nodes">0</span></div>
+        <div>Edges: <span id="stat-edges">0</span></div>
+        <div>Communities: <span id="stat-communities">0</span></div>
+        <div>Density: <span id="stat-density">0</span></div>
+        <div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06);">
+            <span style="color:#ef4444; font-weight:600;">Fragility Index:</span> <span id="stat-fragility" style="color:#ef4444;">0</span><span style="color:rgba(200,206,224,0.4);"> / 100</span>
+            <div style="margin-top:4px; font-size:9px; color:rgba(200,206,224,0.35); line-height:1.5;">
+                <div>BC Concentration: <span id="frag-bc" style="color:#a78bfa;">0</span>/25</div>
+                <div>Carry Centrality: <span id="frag-carry" style="color:#a78bfa;">0</span>/25</div>
+                <div>Financialization: <span id="frag-fin" style="color:#a78bfa;">0</span>/25</div>
+                <div>Influence Peak: <span id="frag-peak" style="color:#a78bfa;">0</span>/25</div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Stress Test</h3>
+    <button id="btn-stress-bridge">Remove Top Bridge</button>
+    <button id="btn-stress-carry">Remove Carry Spread</button>
+    <button id="btn-stress-oil">Shock Oil –40%</button>
+    <button id="btn-stress-rate">US +200bp Rate Cut</button>
+    <button id="btn-stress-afore">Freeze AFORE</button>
+    <button id="btn-stress-ndf">Remove NDF Hedging</button>
+    <button id="btn-stress-fiscal">Fiscal Slippage</button>
+    <button id="btn-stress-sudden">Sudden Stop</button>
+    <button id="btn-stress-compound" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3); color:#ef4444;">Compound Crisis</button>
+    <button id="btn-stress-restore">Restore All</button>
+    <div id="stress-result" style="font-size:10px; color:#ef4444; margin-top:6px;"></div>
+</div>
+
+<div id="legend" class="scrollbar"></div>
+<div id="tooltip"></div>
+<div id="denaris-panel"></div>
+<div id="projection-panel" style="position:fixed; bottom:10px; right:10px; width:290px; max-height:calc(100vh - 20px); overflow-y:auto; background:rgba(6,9,18,0.92); border:1px solid rgba(167,139,250,0.15); border-radius:8px; padding:12px; color:#c8cee0; z-index:100; backdrop-filter:blur(8px); scrollbar-width:thin; scrollbar-color:rgba(167,139,250,0.2) transparent;"></div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+// roundRect polyfill for older browsers
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (typeof r === 'number') r = [r, r, r, r];
+        const [tl, tr, br, bl] = r;
+        this.moveTo(x + tl, y);
+        this.lineTo(x + w - tr, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + tr);
+        this.lineTo(x + w, y + h - br);
+        this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+        this.lineTo(x + bl, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - bl);
+        this.lineTo(x, y + tl);
+        this.quadraticCurveTo(x, y, x + tl, y);
+        this.closePath();
+        return this;
+    };
+}
+
+// ============================================================================
+// CONSTANTS & CONFIG
+// ============================================================================
+
+const CONFIG = {
+    WIDTH: window.innerWidth,
+    HEIGHT: window.innerHeight,
+    GRAVITY: 0.015,
+    DAMPING: 0.85,
+    REPULSION: 1200,
+    ATTRACTION: 0.004,
+    MAX_VELOCITY: 4,
+    FREEZE_THRESHOLD: 250,
+    UNFREEZE_FRAMES: 200,
+    CENTER_X: window.innerWidth / 2,
+    CENTER_Y: (window.innerHeight - 60) / 2 + 60,
+    COLORS: [
+        '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7',
+        '#a29bfe', '#fd79a8', '#fdcb6e', '#74b9ff', '#e17055',
+        '#81ecec', '#fab1a0', '#00b894', '#e84393', '#0984e3',
+        '#d63031', '#ffeaa7', '#dfe6e9', '#55a3e8', '#ff7675'
+    ]
+};
+
+const SECTIONS = ['S1', 'S2', 'S3', 'S4', 'S5'];
+const NODE_TYPES = {
+    primary: 'Primary Data',
+    compiled: 'Compiled Dataset',
+    dataset: 'Dataset',
+    academic: 'Academic',
+    bull_case: 'Bull Case'
+};
+
+const EDGE_TYPES = {
+    mechanism:    { label: 'Causal Mechanism', color: '#ef4444', alpha: 0.35, width: 1.6, dash: false },
+    theory:       { label: 'Theory Support',   color: '#8b7cc8', alpha: 0.2,  width: 1.0, dash: false },
+    data_lineage: { label: 'Data Lineage',     color: '#3db9a0', alpha: 0.25, width: 1.2, dash: false },
+    counter:      { label: 'Counter-Thesis',   color: '#d4af37', alpha: 0.3,  width: 1.2, dash: true },
+    correlation:  { label: 'Correlation',      color: '#5b8fc9', alpha: 0.1,  width: 0.6, dash: false }
+};
+
+// Precompute RGB strings for render loop performance
+Object.keys(EDGE_TYPES).forEach(key => {
+    const hex = EDGE_TYPES[key].color;
+    const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    EDGE_TYPES[key].rgb = r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '90,100,140';
+});
+
+// ============================================================================
+// SEEDED PRNG (Mulberry32)
+// ============================================================================
+
+function mulberry32(a) {
+    return function() {
+        a |= 0; a = a + 0x6d2b79f5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+}
+
+let rng = mulberry32(42);
+
+// ============================================================================
+// GRAPH DATA STRUCTURE
+// ============================================================================
+
+class Graph {
+    constructor() {
+        this.nodes = {};
+        this.edges = [];
+        this.nodeList = [];
+    }
+
+    addNode(id, data) {
+        if (!this.nodes[id]) {
+            const node = {
+                id,
+                ...data,
+                x: CONFIG.CENTER_X + (rng() - 0.5) * 350,
+                y: CONFIG.CENTER_Y + (rng() - 0.5) * 280,
+                z: 0,
+                vx: 0,
+                vy: 0,
+                vz: 0,
+                orbitRadius: 0,
+                orbitAngle: 0,
+                orbitZ: 0
+            };
+            this.nodes[id] = node;
+            this.nodeList.push(node);
+        }
+    }
+
+    addEdge(source, target, weight = 1, type = 'correlation') {
+        if (this.nodes[source] && this.nodes[target]) {
+            this.edges.push({ source, target, weight, type });
+        }
+    }
+
+    getNode(id) { return this.nodes[id]; }
+    getNodes() { return this.nodeList; }
+    getEdges() { return this.edges; }
+}
+
+// ============================================================================
+// NODE DATA (VERBATIM FROM V5)
+// ============================================================================
+
+const nodeData = [
+    // ── Core Currency ──
+    { id: 'dexmxus', name: 'USD/MXN Spot Exchange Rate\nFRED DEXMXUS, Daily (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Daily peso-dollar exchange rate; core paradox metric' },
+
+    // ── Bull Case Nodes ──
+    { id: 'bull_fiscal', name: 'Mexican Fiscal Consolidation\nDeficit Cut to 4.3% of GDP (2025)', type: 'bull_case', year: 2025, sections: ['S4'],
+      purpose: 'Sheinbaum cut deficit from 5.8% to 4.3%; credibility signal',
+      bull_counter: 'Revised 2026 target upward to 4.1%; 17% of income to debt service; structural rigidity' },
+    { id: 'bull_tourism', name: 'Mexico Tourism FX Inflows\n$33B Revenue, 45M Visitors (2024)', type: 'bull_case', year: 2024, sections: ['S1', 'S4'],
+      purpose: '15% of GDP, 45M visitors; hard FX inflow',
+      bull_counter: 'Concentrated in 3 corridors; USD-denominated; vulnerable to US recession' },
+    { id: 'bull_nearshoring', name: 'Nearshoring FDI Pipeline\n$170B Announced, 400+ Projects', type: 'bull_case', year: 2024, sections: ['S2'],
+      purpose: '400+ projects announced; structural competitiveness play',
+      bull_counter: 'Announcements collapsed 75% in 2024; Tesla canceled; $900M actual vs $170B promised' },
+    { id: 'bull_banxico_cred', name: 'Banxico Inflation Targeting Credibility\nEasing Cycle 11.25%→6.50% (2024–2026)', type: 'bull_case', year: 2025, sections: ['S1', 'S4'],
+      purpose: 'Orderly easing cycle from 11.25% to 6.50%; maintained credibility throughout 475bp of cuts',
+      bull_counter: 'Real rate differential 300-450bp incentivizes speculative carry not productive capital; easing cycle itself attracted front-running carry' },
+    { id: 'bull_reserves', name: 'Mexican Foreign Currency Reserves\nAll-Time High $252B (Feb 2026)', type: 'bull_case', year: 2026, sections: ['S3'],
+      purpose: 'All-time high; defensive buffer',
+      bull_counter: 'Significant share of reserve growth attributable to gold revaluation and valuation effects, not active FX accumulation' },
+    { id: 'bull_remit', name: 'Mexico–US Remittance Flows\n$62B Annual, 16% of GDP (2024)', type: 'bull_case', year: 2025, sections: ['S1', 'S4'],
+      purpose: 'Structural FX inflow; 16% of GDP',
+      bull_counter: 'First decline since 2009 (-4.6%); strong peso erodes purchasing power for recipients' },
+    { id: 'bull_bop', name: 'Mexico Current Account Surplus\nSwing from –$16.7B Deficit (2025)', type: 'bull_case', year: 2025, sections: ['S4'],
+      purpose: 'Swung from -$16.7B deficit to surplus',
+      bull_counter: 'Cyclical; driven by import compression from weak growth, not export strength' },
+
+    // ── Carry Trade Core (S1) ──
+    { id: 'carry_spread', name: 'Mexico–US Real Yield Spread\nBanxico 6.50% vs Fed 3.3–3.6% (2026)', type: 'compiled', year: 2026, sections: ['S1'],
+      purpose: 'Real rate differential driving carry trade flows' },
+    { id: 'banxico_rate', name: 'Banxico Overnight Policy Rate\n6.50% Target (Feb 2026)', type: 'primary', year: 2026, sections: ['S1'],
+      purpose: 'Current 6.5%; inflation target 3%; real rate 3.5%+' },
+    { id: 'fed_funds', name: 'Federal Funds Effective Rate\n3.3–3.6% (FRED, 2026)', type: 'primary', year: 2026, sections: ['S1'],
+      purpose: 'Current 3.3-3.6%; drives US cost of carry' },
+    { id: 'cpi', name: 'US Consumer Price Index\nCore CPI 2.4% YoY (BLS, 2026)', type: 'primary', year: 2026, sections: ['S1'],
+      purpose: 'Core inflation 2.4%; soft landing narrative' },
+    { id: 'inpc_diario', name: 'INPC Índice Nacional de Precios\nMexico CPI ~4.1% (INEGI, 2026)', type: 'primary', year: 2026, sections: ['S1'],
+      purpose: 'Daily inflation index; ~4.1% target band' },
+    { id: 'real_rate_diff', name: 'Real Interest Rate Differential\n300–450bp Mexico vs United States', type: 'compiled', year: 2026, sections: ['S1', 'S2'],
+      purpose: 'Difference in real rates; core carry incentive metric' },
+
+    // ── Positioning & Volatility (S1, S3) ──
+    { id: 'cftc_mxn', name: 'CFTC MXN Speculative Positioning\nNet Long Contracts (Weekly, 2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Speculative long positioning; extreme levels 2024-2025' },
+    { id: 'cftc_cme', name: 'CME MXN Futures Open Interest\n$50B+ Daily Volume (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Trading volume growth; $50B+ daily' },
+    { id: 'cftc_cot', name: 'CFTC Commitments of Traders\nManaged Money Net Position (2025)', type: 'primary', year: 2025, sections: ['S1', 'S3'],
+      purpose: 'Large speculator net positioning' },
+    { id: 'vixcls', name: 'CBOE VIX Volatility Index\nFRED VIXCLS, Daily Close (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Equity VIX; inversely correlated with carry unwinding' },
+    { id: 'vix_annual', name: 'VIX Historical Regime Analysis\nAnnual Averages, 1990–2026', type: 'compiled', year: 2025, sections: ['S1'],
+      purpose: 'Annual volatility regime; cycles' },
+
+    // ── Real Economy (S2) ──
+    { id: 'pmi_mexico', name: 'Mexico Manufacturing PMI\n41.8, 22-Month Contraction (Jan 2026)', type: 'primary', year: 2026, sections: ['S2'],
+      purpose: '41.8 (Jan 2026); contraction 22mo consecutive' },
+    { id: 'real_wage', name: 'Mexican Real Wage Growth Index\nINEGI Purchasing Power Series (2025)', type: 'compiled', year: 2025, sections: ['S2'],
+      purpose: 'Purchasing power; weak growth' },
+    { id: 'trade_balance', name: 'Mexico Goods Trade Balance\nWidening Deficit Under Strong Peso (2026)', type: 'compiled', year: 2026, sections: ['S2'],
+      purpose: 'Widening deficit despite strong peso = competitiveness loss' },
+    { id: 'nearshore_actual', name: 'Nearshoring FDI Execution Tracker\n$900M Actual vs $170B Announced', type: 'compiled', year: 2025, sections: ['S2'],
+      purpose: 'FDI reality check; $900M vs $170B' },
+    { id: 'labor_comp', name: 'Mexico Unit Labor Cost Index\nWage-Productivity Ratio (OECD, 2025)', type: 'compiled', year: 2025, sections: ['S2'],
+      purpose: 'Wage vs productivity; Mexico advantage eroding' },
+    { id: 'savings_rate', name: 'Mexican Household Savings Rate\n16.7% of Disposable Income (Sep 2025)', type: 'compiled', year: 2025, sections: ['S2', 'S4'],
+      purpose: 'Domestic demand cushion; but declining' },
+    { id: 'passthrough', name: 'FX-to-Inflation Pass-Through\nEstimated 5–15% Coefficient (Mexico)', type: 'compiled', year: 2025, sections: ['S2', 'S3'],
+      purpose: 'Peso depreciation → inflation; contractionary spiral risk' },
+
+    // ── Capital Flows (S3) ──
+    { id: 'fdijb', name: 'Mexican Sovereign & Corporate Bond Flows\nSpeculative Capital Inflows (2025)', type: 'primary', year: 2025, sections: ['S3'],
+      purpose: 'Speculative capital chasing yield' },
+    { id: 'carry_derivatives', name: 'MXN OTC Derivatives Market\nForwards, Swaps, NDFs >$400B Notional', type: 'primary', year: 2026, sections: ['S3'],
+      purpose: 'OTC forwards, swaps, NDFs; notional > $400B' },
+    { id: 'banxico_interv', name: 'Banxico NDF Hedging Program\n$20B Outstanding Position (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Forward guidance; market confidence signal' },
+    { id: 'bop_current', name: 'Mexico Balance of Payments\nCurrent Account (Banxico, 2025)', type: 'compiled', year: 2025, sections: ['S4'],
+      purpose: '2025 swing to surplus; structural or cyclical?' },
+    { id: 'mex_cds', name: 'Mexico 5Y Credit Default Swap\n93.5bp Spread (Feb 2026)', type: 'dataset', year: 2026, sections: ['S3', 'S4'],
+      purpose: 'Sovereign credit spread; risk premium' },
+    { id: 'foreign_reserves', name: 'Banxico International Reserves\n$252B, 3-Month Import Cover (2026)', type: 'primary', year: 2026, sections: ['S3'],
+      purpose: 'Defensive firepower; 3mo import cover' },
+
+    // ── Macro Stability (S4) ──
+    { id: 'debt_gdp', name: 'Mexico Public Debt-to-GDP Ratio\n55–60% of GDP (SHCP, 2025)', type: 'compiled', year: 2025, sections: ['S4'],
+      purpose: 'Public sector leverage; historical trajectory' },
+    { id: 'pemex_maturity', name: 'Pemex Debt Maturity Schedule\n$12.7B Due 2026, $106B Total', type: 'compiled', year: 2026, sections: ['S3', 'S4'],
+      purpose: 'SOE refinancing risk; oil price dependency' },
+    { id: 'oil_fiscal', name: 'Oil Revenue Fiscal Dependence\n25% of Federal Revenue, Brent $68/bbl', type: 'compiled', year: 2025, sections: ['S4'],
+      purpose: '25% of federal revenue; Brent @ $68/bbl' },
+    { id: 'banxico_decision', name: 'Banxico Monetary Policy Minutes\nBoard Voting Record (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Policy path; forward guidance transparency' },
+    { id: 'tourism_rev', name: 'Mexico Inbound Tourism Revenue\nSECTUR $33B, 45M Visitors (2024)', type: 'dataset', year: 2024, sections: ['S1', 'S4'],
+      purpose: 'Hard currency; 15% of GDP; 45M visitors' },
+
+    // ── Academic Frameworks ──
+    { id: 'brunnermeier', name: 'Brunnermeier et al. (2008)\n"Carry Trades and Currency Crashes"', type: 'academic', year: 2008, sections: ['S1', 'S3'],
+      purpose: 'Crash precedes; liquidity spiral mechanics; vol spike' },
+    { id: 'rogoff_ppp', name: 'Rogoff & Samuels (2018)\n"PPP and Real Exchange Rate Dynamics"', type: 'academic', year: 2018, sections: ['S2', 'S4'],
+      purpose: 'Medium-term reversion; equilibrium REER' },
+    { id: 'peso_problem', name: 'Krasker (1980) / Lewis (1995)\n"The Peso Problem" Literature', type: 'academic', year: 1985, sections: ['S1', 'S3'],
+      purpose: 'Low-probability tail risk mispricing; skewness' },
+    { id: 'soros', name: 'Soros (1987)\n"The Alchemy of Finance: Reflexivity"', type: 'academic', year: 1987, sections: ['S1', 'S3'],
+      purpose: 'Self-reinforcing feedback loops; boom-bust cycles' },
+    { id: 'coppola', name: 'Coppola et al. (2019)\n"EM Carry Trade Mechanics: A Survey"', type: 'academic', year: 2019, sections: ['S1', 'S3'],
+      purpose: 'Systematic review of EM carry mechanics' },
+    { id: 'rbmxbis', name: 'Banxico–BIS Joint Report (2024)\n"MXN FX Market Structure and Flows"', type: 'academic', year: 2024, sections: ['S1', 'S3'],
+      purpose: 'Peso dynamics; positioning & flows' },
+    { id: 'fsoc', name: 'FSOC Annual Report (2024)\n"Emerging Market Currency Risk Chapter"', type: 'academic', year: 2024, sections: ['S3', 'S4'],
+      purpose: 'Systemic risk assessment; spillovers' },
+    { id: 'bie_review', name: 'BIS Quarterly Review (2025)\n"Global Carry Trade Environment"', type: 'academic', year: 2025, sections: ['S1', 'S2'],
+      purpose: 'Global carry environment; Mexico focus' },
+    { id: 'imf_wp', name: 'IMF Article IV Consultation (2024)\n"Mexico: Staff Report and Selected Issues"', type: 'academic', year: 2024, sections: ['S2', 'S4'],
+      purpose: 'IMF annual assessment of Mexico macro outlook; growth potential and structural reform gaps' },
+
+    // ── Spillovers (S5) ──
+    { id: 'houston_bt', name: 'Houston RE Cross-Border Arbitrage\nMexican HNW Capital Flows (2025)', type: 'compiled', year: 2025, sections: ['S5'],
+      purpose: 'Mexican nationals arbitrage peso strength into US property' },
+    { id: 'fhfa_houston', name: 'FHFA Houston Metro HPI\nIndex 407.3, +125% Since 2012 (Q3 2025)', type: 'dataset', year: 2025, sections: ['S5'],
+      purpose: 'Home price index; up 125% since 2012' },
+    { id: 'case_shiller', name: 'S&P/Case-Shiller US Home Price Index\nNational Composite (2026)', type: 'primary', year: 2026, sections: ['S5'],
+      purpose: 'Aggregate US housing valuations' },
+    { id: 'multi_currency_fx', name: 'EM Carry Basket Performance\nMXN vs BRL, TRY, ZAR, AUD (2026)', type: 'compiled', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Carry basket performance; MXN vs BRL, TRY, AUD' },
+    { id: 'otras_divisas', name: 'Latin American Peer Currencies\nBRL, COP, CLP Cross-Rates (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Peer EM currency dynamics; contagion risk' },
+    { id: 'bis_eer', name: 'BIS Effective Exchange Rate Index\nTrade-Weighted MXN (Monthly, 2026)', type: 'primary', year: 2026, sections: ['S2', 'S3'],
+      purpose: 'Trade-weighted peso; competitiveness index' },
+    { id: 'gold', name: 'Gold Spot Price (USD/oz)\nCOMEX Front Month (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Safe haven; inverse to carry sentiment' },
+    { id: 'cycles', name: 'EM Currency Crisis Cycle Analysis\n8–12yr Periodicity, 1982–2026', type: 'compiled', year: 2020, sections: ['S1'],
+      purpose: 'Periodicity analysis; 8-12yr EM cycles' },
+
+    // ── Restored v3 Academic Papers ──
+    { id: 'dornbusch', name: 'Dornbusch (1976)\n"Exchange Rate Overshooting Model"', type: 'academic', year: 1976, sections: ['S1', 'S2'],
+      purpose: 'Exchange rate overshooting under sticky prices; explains peso overshoot beyond fundamentals' },
+    { id: 'calvo', name: 'Calvo (1998)\n"Capital Flows and Capital-Market Crises"', type: 'academic', year: 1998, sections: ['S3', 'S4'],
+      purpose: 'Capital flow reversals in EM; carry unwind = sudden stop; Mexico 1994 archetype' },
+    { id: 'calvo2', name: 'Calvo & Reinhart (2002)\n"Fear of Floating: Exchange Rate Regimes"', type: 'academic', year: 2002, sections: ['S1', 'S3'],
+      purpose: 'EM central banks intervene heavily despite "floating" regime; Banxico behavior' },
+    { id: 'obstfeld', name: 'Obstfeld & Rogoff (2001)\n"The Six Major Puzzles in International FX"', type: 'academic', year: 2001, sections: ['S1', 'S2'],
+      purpose: 'Six major FX puzzles; disconnect between exchange rates and fundamentals' },
+    { id: 'bjornland', name: 'Bjornland (2009)\n"Oil Price Shocks and the FX Channel"', type: 'academic', year: 2009, sections: ['S2', 'S4'],
+      purpose: 'Oil price shocks transmit to exchange rates; Mexico as petro-currency' },
+    { id: 'rogoff_25yr', name: 'Rogoff (2024)\n"25 Years of PPP Convergence Evidence"', type: 'academic', year: 2024, sections: ['S2'],
+      purpose: 'Updated PPP convergence evidence; half-life 3-5yrs; peso misalignment estimate' },
+    { id: 'plantin', name: 'Plantin & Shin (2011)\n"Carry Trades, Monetary Policy, and Externalities"', type: 'academic', year: 2011, sections: ['S1', 'S3'],
+      purpose: 'Carry trades create negative externalities via amplified volatility and contagion' },
+    { id: 'ssrn_mxn', name: 'Bussière et al. (2024)\n"Carry Trade Risk Premia in Emerging Markets" (SSRN)', type: 'academic', year: 2024, sections: ['S1'],
+      purpose: 'Empirical decomposition of EM carry trade risk-return; MXN as primary case study' },
+    { id: 'laeven_valencia', name: 'Laeven & Valencia (2018)\n"Systemic Banking Crises Revisited" (IMF)', type: 'academic', year: 2018, sections: ['S3', 'S4'],
+      purpose: 'Database of 151 banking crises; Mexico 1994 as template for carry-fueled collapse' },
+    { id: 'bis_wp606', name: 'BIS Working Paper No. 606 (2017)\n"FX Market Microstructure and Liquidity"', type: 'academic', year: 2017, sections: ['S1', 'S3'],
+      purpose: 'FX market microstructure; dealer positioning; liquidity spirals in MXN' },
+
+    // ── Structural / Informality ──
+    { id: 'informality_rate', name: 'Mexico Informal Employment Rate\n55% of Labor Force (INEGI, 2025)', type: 'compiled', year: 2025, sections: ['S2', 'S4'],
+      purpose: '55% informal employment; excludes majority from financial system & productivity gains' },
+    { id: 'two_mexicos', name: 'Dual Economy Thesis: "Two Mexicos"\nNorth–South Productivity Divergence', type: 'compiled', year: 2024, sections: ['S2', 'S5'],
+      purpose: 'Northern export-driven Mexico vs. southern subsistence economy; peso benefits only one' },
+    { id: 'tequila_crisis', name: 'Tequila Crisis of 1994\nCarry Unwind → 50% Devaluation Archetype', type: 'compiled', year: 1994, sections: ['S3', 'S4'],
+      purpose: 'Carry trade → sudden stop → 50% devaluation; archetype for current buildup' },
+    { id: 'mexican_paradox', name: 'The Mexican Productivity Paradox\nReforms Without Growth (2000–2023)', type: 'compiled', year: 2023, sections: ['S2'],
+      purpose: 'Despite structural reforms, productivity growth stagnant; institutional quality gap' },
+
+    // ── Additional Data Nodes ──
+    { id: 'm2_money', name: 'M2 Monetary Aggregates Comparison\nMexico vs United States (FRED, 2026)', type: 'primary', year: 2026, sections: ['S1', 'S4'],
+      purpose: 'Relative monetary expansion; liquidity differential driving flows' },
+    { id: 'credit_spread_em', name: 'JP Morgan EMBI+ Spread Index\nEM Sovereign Risk Pricing (2026)', type: 'compiled', year: 2026, sections: ['S3', 'S4'],
+      purpose: 'Aggregate EM sovereign risk pricing; contagion channel' },
+    { id: 'industrial_prod', name: 'Mexico Industrial Production Index\nINEGI Manufacturing Output (2026)', type: 'primary', year: 2026, sections: ['S2'],
+      purpose: 'Manufacturing output; declining alongside PMI; competitiveness erosion metric' },
+    { id: 'fdi_gap', name: 'Nearshoring FDI Execution Gap\n$170B Promised vs <$15B Executed', type: 'compiled', year: 2025, sections: ['S2', 'S3'],
+      purpose: 'Systematic tracking of FDI execution shortfall; $170B promised, <$15B executed' },
+    { id: 'reer_mexico', name: 'Mexico Real Effective Exchange Rate\n15–20% Overvalued vs PPP (2026)', type: 'compiled', year: 2026, sections: ['S2'],
+      purpose: 'Trade-weighted real exchange rate; 15-20% overvaluation estimate vs PPP' },
+    { id: 'jpy_carry', name: 'JPY Carry Trade Unwind (Aug 2024)\n12% MXN Crash, r=0.72 Correlation', type: 'compiled', year: 2024, sections: ['S1', 'S5'],
+      purpose: 'August 2024 JPY carry unwind as preview; 12% crash in 3 days; MXN correlation 0.72' },
+
+    // ── Raw Data Sources ──
+    { id: 'vix_csv', name: 'CBOE VIX Raw Data Extract\nFRED VIXCLS Daily CSV (2026)', type: 'primary', year: 2026, sections: ['S1'],
+      purpose: 'Raw VIX daily downloads' },
+    { id: 'remittances_csv', name: 'Banxico Remittances Monthly Series\nRaw CSV Extract (2026)', type: 'primary', year: 2026, sections: ['S4'],
+      purpose: 'Raw remittance flows data' },
+    { id: 'remittances_compiled', name: 'Mexico Remittances Consolidated\n$62B Annual, Monthly Decomposition', type: 'compiled', year: 2025, sections: ['S4'],
+      purpose: '$62B/yr total; monthly decomposition' },
+    { id: 'remittances_xlsx', name: 'Remittances Origin & Sector Analysis\nCountry-of-Origin Breakdown (XLSX)', type: 'compiled', year: 2025, sections: ['S4'],
+      purpose: 'Sectoral & country origin analysis' },
+    { id: 'afore', name: 'AFORE Pension System Asset Allocation\n$488B AUM, 16% Foreign Cap Used', type: 'primary', year: 2025, sections: ['S3', 'S4'],
+      purpose: 'Mexico\'s $488B pension system; 16% foreign allocation used' },
+    { id: 'bush_fx', name: 'MXN Forward & NDF Curve Data\nSwap Points, Basis Spreads (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'MXN forwards, swaps, NDF curve' },
+
+    // ── S5 Spillover Expansion (V5.1) ──
+    { id: 'tx_industrial', name: 'Texas Industrial Vacancy Rates\nCBRE Border MSAs, 2.8% (Q4 2025)', type: 'dataset', year: 2025, sections: ['S5'],
+      purpose: 'Industrial vacancy in Laredo, McAllen, El Paso border metros; nearshoring demand proxy' },
+    { id: 'cross_border_mortgage', name: 'Cross-Border Mortgage Originations\nMexican Nationals, TX & AZ (2025)', type: 'compiled', year: 2025, sections: ['S5'],
+      purpose: 'Mexican national mortgage volume in US border states; peso strength → purchasing power channel' },
+    { id: 'mty_hou_freight', name: 'Monterrey–Houston Freight Corridor\nLaredo Port Volume, $250B Annual', type: 'compiled', year: 2025, sections: ['S2', 'S5'],
+      purpose: 'Largest US-Mexico trade corridor; truck crossings, rail volume; real economy pulse' },
+    { id: 'border_employment', name: 'US-Mexico Border MSA Employment\nBLS Border County QCEW (2025)', type: 'dataset', year: 2025, sections: ['S2', 'S5'],
+      purpose: 'Employment in US border counties; sensitive to peso-dollar dynamics and trade flows' },
+
+    // ── V6.1 Competitiveness Decay & Second-Order Anchors ──
+    { id: 'export_share_asia', name: 'Mexico Export Market Share vs Asia\nUN Comtrade, US Import Origins (2025)', type: 'compiled', year: 2025, sections: ['S2'],
+      purpose: 'Mexico share of US imports vs China/Vietnam/India; competitiveness erosion metric under strong peso' },
+    { id: 'import_penetration', name: 'Mexico Import Penetration Ratio\nImports as % of Domestic Consumption (2025)', type: 'compiled', year: 2025, sections: ['S2'],
+      purpose: 'Rising import penetration signals domestic producers losing to cheap imports under overvalued peso' },
+    { id: 'private_fx_debt', name: 'Mexican Private Sector FX Debt\nCorporate USD-Denominated Liabilities (2025)', type: 'compiled', year: 2025, sections: ['S3', 'S4'],
+      purpose: 'Corporate FX debt creates balance sheet vulnerability to sudden depreciation; currency mismatch risk' },
+    { id: 'domestic_credit', name: 'Mexico Domestic Credit Growth\nBanking System Credit to Private Sector (2026)', type: 'primary', year: 2026, sections: ['S4'],
+      purpose: 'Credit expansion rate; overheating risk indicator and second-order financial conditions anchor' },
+    { id: 'mfg_export_elast', name: 'Manufacturing Export Price Elasticity\nEstimated REER Sensitivity Coefficient', type: 'compiled', year: 2025, sections: ['S2'],
+      purpose: 'Estimated elasticity of manufacturing exports to real exchange rate; quantifies competitiveness decay speed' },
+    { id: 'nearshore_caputil', name: 'Nearshoring Capacity Utilization\nIndustrial Park Occupancy, Key Corridors (2025)', type: 'compiled', year: 2025, sections: ['S2', 'S5'],
+      purpose: 'Actual capacity utilization in nearshoring corridors; reality check on FDI execution narrative' },
+    { id: 'fiscal_deficit_dyn', name: 'Mexico Fiscal Deficit Dynamics\nPrimary Balance Trajectory (SHCP, 2026)', type: 'compiled', year: 2026, sections: ['S4'],
+      purpose: 'Primary deficit trajectory; structural vs cyclical decomposition; debt sustainability anchor' },
+
+    // ── V6.1b Volatility & Insurance Layer ──
+    { id: 'mxn_implied_vol', name: 'MXN 1M Implied Volatility\nBloomberg USDMXNV1M, Daily (2026)', type: 'primary', year: 2026, sections: ['S1', 'S3'],
+      purpose: '1-month at-the-money implied vol; price of insurance against peso moves; carry-to-vol ratio denominator' },
+    { id: 'mxn_risk_reversal', name: 'MXN 25-Delta Risk Reversal\n1M Put-Call Skew (2026)', type: 'compiled', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Put-call skew pricing; positive = market pays more for downside protection; crash fear thermometer' },
+    { id: 'xccy_basis', name: 'USD/MXN Cross-Currency Basis Swap\n5Y Basis Spread (2026)', type: 'compiled', year: 2026, sections: ['S1', 'S3'],
+      purpose: 'Deviation from covered interest parity; wider basis = dollar funding stress for MXN borrowers' },
+    { id: 'dollar_liquidity', name: 'Global Dollar Liquidity Proxy\nFed Reserves + RRP + TGA (Weekly, 2026)', type: 'compiled', year: 2026, sections: ['S1', 'S3', 'S4'],
+      purpose: 'Aggregate USD liquidity conditions; carry trades expand when liquidity abundant, unwind when scarce' },
+    { id: 'hedge_ratio_intensity', name: 'MXN Hedge Ratio Intensity\nCorporate + Institutional Hedge Coverage (2026)', type: 'compiled', year: 2026, sections: ['S1', 'S3', 'S4'],
+      purpose: 'Aggregate hedge ratio of Mexican corporates and institutional investors; low hedge ratios amplify FX shock transmission' }
+];
+
+// ============================================================================
+// BUILD GRAPH WITH COMPREHENSIVE EDGES (VERBATIM FROM V5)
+// ============================================================================
+
+const graph = new Graph();
+nodeData.forEach(n => graph.addNode(n.id, n));
+
+// ALL EDGES FROM V5 — Lines 670-1133
+graph.addEdge('banxico_rate', 'carry_spread', 0.9, 'mechanism');
+graph.addEdge('fed_funds', 'carry_spread', 0.9, 'mechanism');
+graph.addEdge('carry_spread', 'cftc_mxn', 0.95, 'mechanism');
+graph.addEdge('carry_spread', 'fdijb', 0.85, 'mechanism');
+graph.addEdge('cftc_mxn', 'cftc_cme', 0.88, 'mechanism');
+graph.addEdge('cftc_mxn', 'vixcls', 0.7, 'correlation');
+graph.addEdge('cftc_cot', 'cftc_cme', 0.7, 'mechanism');
+graph.addEdge('cftc_cot', 'cftc_mxn', 0.75, 'mechanism');
+
+graph.addEdge('dexmxus', 'carry_spread', 0.80, 'correlation');
+graph.addEdge('dexmxus', 'fdijb', 0.8, 'mechanism');
+graph.addEdge('dexmxus', 'bis_eer', 0.85, 'mechanism');
+graph.addEdge('dexmxus', 'pmi_mexico', 0.6, 'correlation');
+graph.addEdge('dexmxus', 'trade_balance', 0.75, 'correlation');
+graph.addEdge('dexmxus', 'real_wage', 0.65, 'correlation');
+graph.addEdge('dexmxus', 'multi_currency_fx', 0.8, 'mechanism');
+
+graph.addEdge('bull_fiscal', 'debt_gdp', 0.8, 'counter');
+graph.addEdge('bull_fiscal', 'banxico_rate', 0.7, 'counter');
+graph.addEdge('bull_fiscal', 'oil_fiscal', 0.6, 'counter');
+
+graph.addEdge('bull_tourism', 'tourism_rev', 0.95, 'mechanism');
+graph.addEdge('bull_tourism', 'dexmxus', 0.7, 'counter');
+graph.addEdge('bull_tourism', 'carry_spread', 0.5, 'counter');
+
+graph.addEdge('bull_nearshoring', 'nearshore_actual', 0.95, 'counter');
+graph.addEdge('bull_nearshoring', 'trade_balance', 0.75, 'counter');
+graph.addEdge('bull_nearshoring', 'pmi_mexico', 0.7, 'counter');
+graph.addEdge('bull_nearshoring', 'labor_comp', 0.8, 'counter');
+
+graph.addEdge('bull_banxico_cred', 'banxico_rate', 0.75, 'mechanism');
+graph.addEdge('bull_banxico_cred', 'real_rate_diff', 0.95, 'counter');
+graph.addEdge('bull_banxico_cred', 'carry_spread', 0.85, 'counter');
+graph.addEdge('bull_banxico_cred', 'brunnermeier', 0.6, 'counter');
+
+graph.addEdge('bull_reserves', 'foreign_reserves', 0.95, 'mechanism');
+graph.addEdge('bull_reserves', 'mex_cds', 0.7, 'counter');
+graph.addEdge('bull_reserves', 'dexmxus', 0.6, 'counter');
+
+graph.addEdge('bull_remit', 'remittances_compiled', 0.95, 'mechanism');
+graph.addEdge('bull_remit', 'passthrough', 0.5, 'counter');
+graph.addEdge('bull_remit', 'savings_rate', 0.6, 'counter');
+
+graph.addEdge('bull_bop', 'bop_current', 0.95, 'mechanism');
+graph.addEdge('bull_bop', 'trade_balance', 0.8, 'counter');
+graph.addEdge('bull_bop', 'pmi_mexico', 0.65, 'counter');
+
+graph.addEdge('pmi_mexico', 'trade_balance', 0.9, 'mechanism');
+graph.addEdge('pmi_mexico', 'real_wage', 0.85, 'mechanism');
+graph.addEdge('trade_balance', 'labor_comp', 0.9, 'mechanism');
+graph.addEdge('labor_comp', 'bis_eer', 0.85, 'mechanism');
+graph.addEdge('nearshore_actual', 'pmi_mexico', 0.75, 'mechanism');
+graph.addEdge('nearshore_actual', 'labor_comp', 0.8, 'mechanism');
+graph.addEdge('real_wage', 'savings_rate', 0.7, 'mechanism');
+graph.addEdge('savings_rate', 'bop_current', 0.6, 'correlation');
+
+graph.addEdge('passthrough', 'inpc_diario', 0.9, 'mechanism');
+graph.addEdge('passthrough', 'cpi', 0.75, 'correlation');
+graph.addEdge('passthrough', 'banxico_rate', 0.7, 'correlation');
+graph.addEdge('passthrough', 'dexmxus', 0.8, 'mechanism');
+graph.addEdge('inpc_diario', 'banxico_rate', 0.85, 'mechanism');
+graph.addEdge('cpi', 'fed_funds', 0.8, 'mechanism');
+
+graph.addEdge('carry_derivatives', 'bush_fx', 0.95, 'mechanism');
+graph.addEdge('carry_derivatives', 'cftc_mxn', 0.8, 'mechanism');
+graph.addEdge('banxico_interv', 'bush_fx', 0.9, 'mechanism');
+graph.addEdge('banxico_interv', 'dexmxus', 0.7, 'mechanism');
+graph.addEdge('banxico_interv', 'carry_spread', 0.6, 'correlation');
+graph.addEdge('fdijb', 'mex_cds', 0.75, 'correlation');
+graph.addEdge('mex_cds', 'debt_gdp', 0.8, 'mechanism');
+
+graph.addEdge('debt_gdp', 'oil_fiscal', 0.75, 'mechanism');
+graph.addEdge('pemex_maturity', 'oil_fiscal', 0.85, 'mechanism');
+graph.addEdge('oil_fiscal', 'dexmxus', 0.7, 'correlation');
+graph.addEdge('banxico_decision', 'banxico_rate', 0.95, 'mechanism');
+graph.addEdge('banxico_decision', 'carry_spread', 0.8, 'mechanism');
+
+graph.addEdge('brunnermeier', 'cftc_mxn', 0.75, 'theory');
+graph.addEdge('brunnermeier', 'vixcls', 0.85, 'theory');
+graph.addEdge('brunnermeier', 'carry_spread', 0.8, 'theory');
+graph.addEdge('brunnermeier', 'peso_problem', 0.7, 'theory');
+
+graph.addEdge('peso_problem', 'carry_derivatives', 0.6, 'theory');
+graph.addEdge('peso_problem', 'cftc_mxn', 0.65, 'theory');
+graph.addEdge('peso_problem', 'vixcls', 0.5, 'theory');
+
+graph.addEdge('rogoff_ppp', 'dexmxus', 0.75, 'theory');
+graph.addEdge('rogoff_ppp', 'bis_eer', 0.85, 'theory');
+graph.addEdge('rogoff_ppp', 'trade_balance', 0.7, 'theory');
+graph.addEdge('rogoff_ppp', 'rbmxbis', 0.6, 'theory');
+
+graph.addEdge('soros', 'carry_spread', 0.7, 'theory');
+graph.addEdge('soros', 'vixcls', 0.65, 'theory');
+graph.addEdge('soros', 'cycles', 0.75, 'theory');
+
+graph.addEdge('coppola', 'carry_derivatives', 0.75, 'theory');
+graph.addEdge('coppola', 'fdijb', 0.6, 'theory');
+graph.addEdge('coppola', 'multi_currency_fx', 0.7, 'theory');
+
+graph.addEdge('rbmxbis', 'dexmxus', 0.85, 'theory');
+graph.addEdge('rbmxbis', 'cftc_mxn', 0.7, 'theory');
+graph.addEdge('rbmxbis', 'bis_eer', 0.75, 'theory');
+
+graph.addEdge('fsoc', 'vixcls', 0.7, 'theory');
+graph.addEdge('fsoc', 'mex_cds', 0.75, 'theory');
+graph.addEdge('fsoc', 'brunnermeier', 0.65, 'theory');
+
+graph.addEdge('bie_review', 'carry_spread', 0.7, 'theory');
+graph.addEdge('bie_review', 'bis_eer', 0.65, 'theory');
+
+graph.addEdge('imf_wp', 'pmi_mexico', 0.65, 'theory');
+graph.addEdge('imf_wp', 'debt_gdp', 0.7, 'theory');
+
+graph.addEdge('houston_bt', 'fhfa_houston', 0.65, 'correlation');
+graph.addEdge('houston_bt', 'dexmxus', 0.8, 'correlation');
+graph.addEdge('houston_bt', 'carry_spread', 0.7, 'correlation');
+graph.addEdge('fhfa_houston', 'case_shiller', 0.8, 'mechanism');
+graph.addEdge('case_shiller', 'vixcls', 0.5, 'correlation');
+
+graph.addEdge('multi_currency_fx', 'otras_divisas', 0.95, 'mechanism');
+graph.addEdge('otras_divisas', 'dexmxus', 0.8, 'mechanism');
+graph.addEdge('gold', 'vixcls', 0.8, 'correlation');
+graph.addEdge('gold', 'carry_spread', 0.65, 'correlation');
+
+graph.addEdge('cycles', 'vix_annual', 0.95, 'mechanism');
+graph.addEdge('vix_annual', 'vixcls', 0.9, 'mechanism');
+graph.addEdge('vixcls', 'fdijb', 0.75, 'correlation');
+graph.addEdge('cftc_cme', 'vixcls', 0.6, 'correlation');
+
+graph.addEdge('vix_csv', 'vixcls', 0.95, 'data_lineage');
+graph.addEdge('vix_csv', 'vix_annual', 0.9, 'data_lineage');
+graph.addEdge('vix_annual', 'cycles', 0.85, 'mechanism');
+
+graph.addEdge('remittances_csv', 'remittances_compiled', 0.95, 'data_lineage');
+graph.addEdge('remittances_compiled', 'remittances_xlsx', 0.9, 'data_lineage');
+graph.addEdge('remittances_compiled', 'bull_remit', 0.85, 'counter');
+
+graph.addEdge('bush_fx', 'carry_derivatives', 0.9, 'mechanism');
+graph.addEdge('bush_fx', 'cftc_mxn', 0.75, 'mechanism');
+
+graph.addEdge('afore', 'fdijb', 0.7, 'correlation');
+graph.addEdge('afore', 'foreign_reserves', 0.5, 'correlation');
+
+graph.addEdge('inpc_diario', 'cpi', 0.7, 'correlation');
+graph.addEdge('real_rate_diff', 'carry_spread', 0.95, 'mechanism');
+graph.addEdge('cftc_cme', 'cftc_cot', 0.75, 'mechanism');
+
+// Dornbusch overshooting
+graph.addEdge('dornbusch', 'dexmxus', 0.9, 'theory');
+graph.addEdge('dornbusch', 'carry_spread', 0.8, 'theory');
+graph.addEdge('dornbusch', 'banxico_rate', 0.75, 'theory');
+graph.addEdge('dornbusch', 'obstfeld', 0.85, 'theory');
+graph.addEdge('dornbusch', 'rogoff_ppp', 0.7, 'theory');
+graph.addEdge('dornbusch', 'passthrough', 0.65, 'theory');
+
+// Calvo sudden stop
+graph.addEdge('calvo', 'tequila_crisis', 0.95, 'theory');
+graph.addEdge('calvo', 'fdijb', 0.85, 'theory');
+graph.addEdge('calvo', 'carry_derivatives', 0.8, 'theory');
+graph.addEdge('calvo', 'foreign_reserves', 0.75, 'theory');
+graph.addEdge('calvo', 'mex_cds', 0.7, 'theory');
+graph.addEdge('calvo', 'brunnermeier', 0.8, 'theory');
+graph.addEdge('calvo', 'laeven_valencia', 0.9, 'theory');
+graph.addEdge('calvo', 'cftc_mxn', 0.7, 'theory');
+
+// Calvo & Reinhart fear of floating
+graph.addEdge('calvo2', 'banxico_interv', 0.9, 'theory');
+graph.addEdge('calvo2', 'dexmxus', 0.75, 'theory');
+graph.addEdge('calvo2', 'foreign_reserves', 0.7, 'theory');
+graph.addEdge('calvo2', 'calvo', 0.85, 'theory');
+graph.addEdge('calvo2', 'banxico_decision', 0.8, 'theory');
+
+// Obstfeld exchange rate puzzles
+graph.addEdge('obstfeld', 'dexmxus', 0.85, 'theory');
+graph.addEdge('obstfeld', 'rogoff_ppp', 0.9, 'theory');
+graph.addEdge('obstfeld', 'bis_eer', 0.7, 'theory');
+graph.addEdge('obstfeld', 'trade_balance', 0.65, 'theory');
+graph.addEdge('obstfeld', 'reer_mexico', 0.8, 'theory');
+
+// Bjornland oil-FX
+graph.addEdge('bjornland', 'oil_fiscal', 0.9, 'theory');
+graph.addEdge('bjornland', 'dexmxus', 0.8, 'theory');
+graph.addEdge('bjornland', 'pemex_maturity', 0.7, 'theory');
+graph.addEdge('bjornland', 'trade_balance', 0.6, 'theory');
+
+// Rogoff 25yr PPP
+graph.addEdge('rogoff_25yr', 'rogoff_ppp', 0.95, 'theory');
+graph.addEdge('rogoff_25yr', 'reer_mexico', 0.9, 'theory');
+graph.addEdge('rogoff_25yr', 'bis_eer', 0.8, 'theory');
+graph.addEdge('rogoff_25yr', 'dexmxus', 0.75, 'theory');
+
+// Plantin-Shin carry externalities
+graph.addEdge('plantin', 'brunnermeier', 0.9, 'theory');
+graph.addEdge('plantin', 'carry_spread', 0.85, 'theory');
+graph.addEdge('plantin', 'cftc_mxn', 0.75, 'theory');
+graph.addEdge('plantin', 'jpy_carry', 0.8, 'theory');
+graph.addEdge('plantin', 'multi_currency_fx', 0.7, 'theory');
+graph.addEdge('plantin', 'soros', 0.75, 'theory');
+
+// SSRN MXN carry
+graph.addEdge('ssrn_mxn', 'carry_spread', 0.9, 'theory');
+graph.addEdge('ssrn_mxn', 'cftc_mxn', 0.85, 'theory');
+graph.addEdge('ssrn_mxn', 'brunnermeier', 0.7, 'theory');
+graph.addEdge('ssrn_mxn', 'coppola', 0.8, 'theory');
+graph.addEdge('ssrn_mxn', 'real_rate_diff', 0.75, 'theory');
+
+// Laeven & Valencia banking crises
+graph.addEdge('laeven_valencia', 'tequila_crisis', 0.95, 'theory');
+graph.addEdge('laeven_valencia', 'mex_cds', 0.7, 'theory');
+graph.addEdge('laeven_valencia', 'debt_gdp', 0.65, 'theory');
+graph.addEdge('laeven_valencia', 'fsoc', 0.75, 'theory');
+
+// BIS WP 606 FX microstructure
+graph.addEdge('bis_wp606', 'cftc_mxn', 0.85, 'theory');
+graph.addEdge('bis_wp606', 'carry_derivatives', 0.8, 'theory');
+graph.addEdge('bis_wp606', 'bush_fx', 0.75, 'theory');
+graph.addEdge('bis_wp606', 'rbmxbis', 0.9, 'theory');
+graph.addEdge('bis_wp606', 'brunnermeier', 0.7, 'theory');
+graph.addEdge('bis_wp606', 'vixcls', 0.65, 'theory');
+
+// Informality & structural edges
+graph.addEdge('informality_rate', 'two_mexicos', 0.95, 'mechanism');
+graph.addEdge('informality_rate', 'real_wage', 0.85, 'mechanism');
+graph.addEdge('informality_rate', 'labor_comp', 0.8, 'mechanism');
+graph.addEdge('informality_rate', 'pmi_mexico', 0.7, 'correlation');
+graph.addEdge('informality_rate', 'savings_rate', 0.75, 'correlation');
+graph.addEdge('informality_rate', 'mexican_paradox', 0.85, 'mechanism');
+
+graph.addEdge('two_mexicos', 'nearshore_actual', 0.8, 'correlation');
+graph.addEdge('two_mexicos', 'trade_balance', 0.7, 'correlation');
+graph.addEdge('two_mexicos', 'houston_bt', 0.75, 'correlation');
+graph.addEdge('two_mexicos', 'bull_nearshoring', 0.65, 'counter');
+graph.addEdge('two_mexicos', 'dexmxus', 0.6, 'correlation');
+
+graph.addEdge('tequila_crisis', 'dexmxus', 0.9, 'mechanism');
+graph.addEdge('tequila_crisis', 'cycles', 0.85, 'mechanism');
+graph.addEdge('tequila_crisis', 'foreign_reserves', 0.8, 'mechanism');
+graph.addEdge('tequila_crisis', 'carry_spread', 0.75, 'correlation');
+graph.addEdge('tequila_crisis', 'peso_problem', 0.9, 'theory');
+graph.addEdge('tequila_crisis', 'banxico_interv', 0.7, 'correlation');
+
+graph.addEdge('mexican_paradox', 'pmi_mexico', 0.8, 'correlation');
+graph.addEdge('mexican_paradox', 'industrial_prod', 0.85, 'mechanism');
+graph.addEdge('mexican_paradox', 'bull_nearshoring', 0.7, 'counter');
+graph.addEdge('mexican_paradox', 'labor_comp', 0.75, 'correlation');
+
+graph.addEdge('m2_money', 'banxico_rate', 0.8, 'mechanism');
+graph.addEdge('m2_money', 'fed_funds', 0.75, 'mechanism');
+graph.addEdge('m2_money', 'carry_spread', 0.7, 'correlation');
+graph.addEdge('m2_money', 'dexmxus', 0.65, 'correlation');
+graph.addEdge('m2_money', 'inpc_diario', 0.6, 'correlation');
+
+graph.addEdge('credit_spread_em', 'mex_cds', 0.9, 'mechanism');
+graph.addEdge('credit_spread_em', 'otras_divisas', 0.85, 'mechanism');
+graph.addEdge('credit_spread_em', 'vixcls', 0.75, 'correlation');
+graph.addEdge('credit_spread_em', 'fdijb', 0.7, 'correlation');
+graph.addEdge('credit_spread_em', 'fsoc', 0.8, 'theory');
+
+graph.addEdge('industrial_prod', 'pmi_mexico', 0.95, 'mechanism');
+graph.addEdge('industrial_prod', 'trade_balance', 0.85, 'mechanism');
+graph.addEdge('industrial_prod', 'labor_comp', 0.8, 'mechanism');
+graph.addEdge('industrial_prod', 'nearshore_actual', 0.75, 'mechanism');
+graph.addEdge('industrial_prod', 'dexmxus', 0.6, 'correlation');
+graph.addEdge('industrial_prod', 'real_wage', 0.7, 'mechanism');
+
+graph.addEdge('fdi_gap', 'nearshore_actual', 0.95, 'mechanism');
+graph.addEdge('fdi_gap', 'bull_nearshoring', 0.9, 'counter');
+graph.addEdge('fdi_gap', 'trade_balance', 0.7, 'correlation');
+graph.addEdge('fdi_gap', 'two_mexicos', 0.65, 'correlation');
+graph.addEdge('fdi_gap', 'pmi_mexico', 0.6, 'correlation');
+
+graph.addEdge('reer_mexico', 'bis_eer', 0.95, 'mechanism');
+graph.addEdge('reer_mexico', 'dexmxus', 0.9, 'mechanism');
+graph.addEdge('reer_mexico', 'trade_balance', 0.85, 'mechanism');
+graph.addEdge('reer_mexico', 'labor_comp', 0.8, 'mechanism');
+graph.addEdge('reer_mexico', 'rogoff_ppp', 0.85, 'theory');
+graph.addEdge('reer_mexico', 'passthrough', 0.7, 'correlation');
+
+graph.addEdge('jpy_carry', 'carry_spread', 0.85, 'correlation');
+graph.addEdge('jpy_carry', 'brunnermeier', 0.9, 'theory');
+graph.addEdge('jpy_carry', 'vixcls', 0.8, 'correlation');
+graph.addEdge('jpy_carry', 'cftc_mxn', 0.75, 'correlation');
+graph.addEdge('jpy_carry', 'multi_currency_fx', 0.85, 'mechanism');
+graph.addEdge('jpy_carry', 'cycles', 0.7, 'correlation');
+graph.addEdge('jpy_carry', 'otras_divisas', 0.8, 'mechanism');
+graph.addEdge('jpy_carry', 'gold', 0.65, 'correlation');
+graph.addEdge('jpy_carry', 'dexmxus', 0.8, 'mechanism');
+
+// Carry → Real Economy bridges
+graph.addEdge('carry_spread', 'trade_balance', 0.7, 'correlation');
+graph.addEdge('carry_spread', 'real_wage', 0.6, 'correlation');
+graph.addEdge('carry_spread', 'pmi_mexico', 0.55, 'correlation');
+graph.addEdge('carry_spread', 'labor_comp', 0.5, 'correlation');
+graph.addEdge('banxico_rate', 'pmi_mexico', 0.6, 'correlation');
+graph.addEdge('banxico_rate', 'debt_gdp', 0.65, 'correlation');
+graph.addEdge('banxico_rate', 'real_wage', 0.55, 'correlation');
+graph.addEdge('fed_funds', 'dexmxus', 0.7, 'mechanism');
+graph.addEdge('fed_funds', 'multi_currency_fx', 0.6, 'correlation');
+graph.addEdge('real_rate_diff', 'dexmxus', 0.85, 'mechanism');
+graph.addEdge('real_rate_diff', 'fdijb', 0.8, 'mechanism');
+graph.addEdge('real_rate_diff', 'cftc_mxn', 0.75, 'mechanism');
+
+// Capital Flows → Macro bridges
+graph.addEdge('fdijb', 'debt_gdp', 0.6, 'correlation');
+graph.addEdge('fdijb', 'bop_current', 0.65, 'correlation');
+graph.addEdge('foreign_reserves', 'dexmxus', 0.75, 'mechanism');
+graph.addEdge('foreign_reserves', 'banxico_interv', 0.85, 'mechanism');
+graph.addEdge('foreign_reserves', 'bop_current', 0.7, 'mechanism');
+graph.addEdge('mex_cds', 'carry_spread', 0.65, 'correlation');
+graph.addEdge('mex_cds', 'pemex_maturity', 0.8, 'mechanism');
+graph.addEdge('mex_cds', 'oil_fiscal', 0.6, 'correlation');
+graph.addEdge('carry_derivatives', 'dexmxus', 0.8, 'mechanism');
+graph.addEdge('carry_derivatives', 'vixcls', 0.65, 'correlation');
+graph.addEdge('carry_derivatives', 'banxico_interv', 0.7, 'correlation');
+
+// Spillovers → Core bridges
+graph.addEdge('houston_bt', 'remittances_compiled', 0.7, 'correlation');
+graph.addEdge('houston_bt', 'savings_rate', 0.6, 'correlation');
+graph.addEdge('houston_bt', 'two_mexicos', 0.75, 'correlation');
+graph.addEdge('multi_currency_fx', 'carry_spread', 0.75, 'mechanism');
+graph.addEdge('multi_currency_fx', 'vixcls', 0.7, 'correlation');
+graph.addEdge('multi_currency_fx', 'brunnermeier', 0.6, 'theory');
+graph.addEdge('otras_divisas', 'carry_spread', 0.7, 'mechanism');
+graph.addEdge('gold', 'dexmxus', 0.6, 'correlation');
+graph.addEdge('gold', 'foreign_reserves', 0.55, 'correlation');
+
+// Bull case → additional data support
+graph.addEdge('bull_fiscal', 'pemex_maturity', 0.7, 'counter');
+graph.addEdge('bull_fiscal', 'mex_cds', 0.65, 'counter');
+graph.addEdge('bull_tourism', 'bop_current', 0.75, 'counter');
+graph.addEdge('bull_tourism', 'remittances_compiled', 0.6, 'counter');
+graph.addEdge('bull_nearshoring', 'fdi_gap', 0.9, 'counter');
+graph.addEdge('bull_nearshoring', 'industrial_prod', 0.75, 'counter');
+graph.addEdge('bull_nearshoring', 'two_mexicos', 0.65, 'counter');
+graph.addEdge('bull_banxico_cred', 'banxico_decision', 0.85, 'counter');
+graph.addEdge('bull_banxico_cred', 'calvo2', 0.7, 'counter');
+graph.addEdge('bull_banxico_cred', 'dexmxus', 0.65, 'counter');
+graph.addEdge('bull_reserves', 'banxico_interv', 0.8, 'counter');
+graph.addEdge('bull_reserves', 'calvo', 0.6, 'counter');
+graph.addEdge('bull_remit', 'bop_current', 0.7, 'counter');
+graph.addEdge('bull_remit', 'two_mexicos', 0.55, 'counter');
+graph.addEdge('bull_bop', 'foreign_reserves', 0.7, 'counter');
+graph.addEdge('bull_bop', 'remittances_compiled', 0.6, 'counter');
+graph.addEdge('bull_bop', 'tourism_rev', 0.65, 'counter');
+
+// Academic cross-references
+graph.addEdge('soros', 'calvo', 0.7, 'theory');
+graph.addEdge('soros', 'brunnermeier', 0.8, 'theory');
+graph.addEdge('soros', 'tequila_crisis', 0.75, 'theory');
+graph.addEdge('soros', 'dexmxus', 0.65, 'theory');
+graph.addEdge('peso_problem', 'tequila_crisis', 0.9, 'theory');
+graph.addEdge('peso_problem', 'calvo', 0.7, 'theory');
+graph.addEdge('peso_problem', 'mex_cds', 0.6, 'theory');
+graph.addEdge('coppola', 'plantin', 0.8, 'theory');
+graph.addEdge('coppola', 'real_rate_diff', 0.7, 'theory');
+graph.addEdge('coppola', 'jpy_carry', 0.75, 'theory');
+graph.addEdge('rbmxbis', 'banxico_interv', 0.7, 'theory');
+graph.addEdge('rbmxbis', 'carry_derivatives', 0.75, 'theory');
+graph.addEdge('fsoc', 'calvo', 0.65, 'theory');
+graph.addEdge('fsoc', 'credit_spread_em', 0.8, 'theory');
+graph.addEdge('fsoc', 'laeven_valencia', 0.75, 'theory');
+graph.addEdge('bie_review', 'real_rate_diff', 0.75, 'theory');
+graph.addEdge('bie_review', 'dexmxus', 0.65, 'theory');
+graph.addEdge('bie_review', 'coppola', 0.6, 'theory');
+graph.addEdge('imf_wp', 'informality_rate', 0.75, 'theory');
+graph.addEdge('imf_wp', 'mexican_paradox', 0.8, 'theory');
+graph.addEdge('imf_wp', 'savings_rate', 0.6, 'theory');
+graph.addEdge('imf_wp', 'oil_fiscal', 0.65, 'theory');
+graph.addEdge('imf_wp', 'trade_balance', 0.6, 'theory');
+
+// Wire remaining single-connection nodes deeper
+graph.addEdge('pemex_maturity', 'debt_gdp', 0.8, 'mechanism');
+graph.addEdge('pemex_maturity', 'dexmxus', 0.7, 'correlation');
+graph.addEdge('pemex_maturity', 'mex_cds', 0.85, 'mechanism');
+graph.addEdge('pemex_maturity', 'bop_current', 0.6, 'correlation');
+graph.addEdge('tourism_rev', 'dexmxus', 0.7, 'correlation');
+graph.addEdge('tourism_rev', 'bop_current', 0.75, 'mechanism');
+graph.addEdge('tourism_rev', 'remittances_compiled', 0.6, 'correlation');
+graph.addEdge('remittances_csv', 'bull_remit', 0.8, 'counter');
+graph.addEdge('remittances_csv', 'bop_current', 0.6, 'data_lineage');
+graph.addEdge('remittances_xlsx', 'savings_rate', 0.6, 'data_lineage');
+graph.addEdge('remittances_xlsx', 'two_mexicos', 0.55, 'correlation');
+graph.addEdge('remittances_xlsx', 'bull_remit', 0.7, 'counter');
+
+// AFORE deeper wiring
+graph.addEdge('afore', 'carry_spread', 0.7, 'correlation');
+graph.addEdge('afore', 'dexmxus', 0.65, 'correlation');
+graph.addEdge('afore', 'savings_rate', 0.6, 'correlation');
+
+// Missing structural edges (V5)
+graph.addEdge('savings_rate', 'dexmxus', 0.6, 'correlation');
+graph.addEdge('afore', 'carry_derivatives', 0.7, 'mechanism');
+graph.addEdge('jpy_carry', 'tequila_crisis', 0.75, 'theory');
+graph.addEdge('afore', 'bop_current', 0.55, 'correlation');
+
+// Data sourcing cross-connections
+graph.addEdge('vix_csv', 'cftc_mxn', 0.5, 'correlation');
+graph.addEdge('bush_fx', 'dexmxus', 0.8, 'mechanism');
+graph.addEdge('bush_fx', 'banxico_decision', 0.65, 'mechanism');
+graph.addEdge('case_shiller', 'houston_bt', 0.85, 'data_lineage');
+graph.addEdge('case_shiller', 'dexmxus', 0.5, 'correlation');
+
+// S5 Spillover expansion (V5.1)
+graph.addEdge('tx_industrial', 'houston_bt', 0.8, 'correlation');
+graph.addEdge('tx_industrial', 'nearshore_actual', 0.75, 'mechanism');
+graph.addEdge('tx_industrial', 'fhfa_houston', 0.7, 'correlation');
+graph.addEdge('tx_industrial', 'mty_hou_freight', 0.85, 'mechanism');
+graph.addEdge('tx_industrial', 'trade_balance', 0.6, 'correlation');
+
+graph.addEdge('cross_border_mortgage', 'houston_bt', 0.9, 'mechanism');
+graph.addEdge('cross_border_mortgage', 'dexmxus', 0.75, 'mechanism');
+graph.addEdge('cross_border_mortgage', 'fhfa_houston', 0.8, 'mechanism');
+graph.addEdge('cross_border_mortgage', 'case_shiller', 0.65, 'correlation');
+graph.addEdge('cross_border_mortgage', 'remittances_compiled', 0.6, 'correlation');
+
+graph.addEdge('mty_hou_freight', 'trade_balance', 0.85, 'mechanism');
+graph.addEdge('mty_hou_freight', 'pmi_mexico', 0.8, 'mechanism');
+graph.addEdge('mty_hou_freight', 'nearshore_actual', 0.75, 'mechanism');
+graph.addEdge('mty_hou_freight', 'dexmxus', 0.65, 'correlation');
+graph.addEdge('mty_hou_freight', 'two_mexicos', 0.7, 'correlation');
+graph.addEdge('mty_hou_freight', 'border_employment', 0.8, 'mechanism');
+
+graph.addEdge('border_employment', 'dexmxus', 0.6, 'correlation');
+graph.addEdge('border_employment', 'trade_balance', 0.7, 'mechanism');
+graph.addEdge('border_employment', 'real_wage', 0.65, 'correlation');
+graph.addEdge('border_employment', 'two_mexicos', 0.75, 'correlation');
+graph.addEdge('border_employment', 'houston_bt', 0.7, 'correlation');
+
+// ============================================================================
+// V6.1 COMPETITIVENESS DECAY & SECOND-ORDER ANCHOR EDGES
+// ============================================================================
+
+// Export market share vs Asia — doom loop leg 3
+graph.addEdge('export_share_asia', 'trade_balance', 0.9, 'mechanism');
+graph.addEdge('export_share_asia', 'reer_mexico', 0.85, 'mechanism');
+graph.addEdge('export_share_asia', 'labor_comp', 0.8, 'mechanism');
+graph.addEdge('export_share_asia', 'pmi_mexico', 0.75, 'correlation');
+graph.addEdge('export_share_asia', 'nearshore_actual', 0.7, 'correlation');
+graph.addEdge('export_share_asia', 'bull_nearshoring', 0.65, 'counter');
+graph.addEdge('export_share_asia', 'two_mexicos', 0.6, 'correlation');
+
+// Import penetration — competitiveness collapse signal
+graph.addEdge('import_penetration', 'trade_balance', 0.95, 'mechanism');
+graph.addEdge('import_penetration', 'reer_mexico', 0.85, 'mechanism');
+graph.addEdge('import_penetration', 'pmi_mexico', 0.8, 'mechanism');
+graph.addEdge('import_penetration', 'industrial_prod', 0.75, 'mechanism');
+graph.addEdge('import_penetration', 'real_wage', 0.6, 'correlation');
+graph.addEdge('import_penetration', 'export_share_asia', 0.8, 'correlation');
+
+// Private sector FX debt — balance sheet channel (second-order anchor)
+graph.addEdge('private_fx_debt', 'mex_cds', 0.85, 'mechanism');
+graph.addEdge('private_fx_debt', 'carry_derivatives', 0.8, 'mechanism');
+graph.addEdge('private_fx_debt', 'debt_gdp', 0.75, 'correlation');
+graph.addEdge('private_fx_debt', 'pemex_maturity', 0.7, 'correlation');
+graph.addEdge('private_fx_debt', 'fdijb', 0.65, 'correlation');
+graph.addEdge('private_fx_debt', 'calvo', 0.75, 'theory');
+graph.addEdge('private_fx_debt', 'tequila_crisis', 0.7, 'theory');
+graph.addEdge('private_fx_debt', 'banxico_interv', 0.6, 'correlation');
+
+// Domestic credit growth — financial conditions anchor (reduces dexmxus concentration)
+graph.addEdge('domestic_credit', 'banxico_rate', 0.85, 'mechanism');
+graph.addEdge('domestic_credit', 'carry_spread', 0.75, 'mechanism');
+graph.addEdge('domestic_credit', 'inpc_diario', 0.7, 'mechanism');
+graph.addEdge('domestic_credit', 'private_fx_debt', 0.8, 'mechanism');
+graph.addEdge('domestic_credit', 'real_wage', 0.6, 'correlation');
+graph.addEdge('domestic_credit', 'savings_rate', 0.65, 'correlation');
+graph.addEdge('domestic_credit', 'debt_gdp', 0.6, 'correlation');
+graph.addEdge('domestic_credit', 'm2_money', 0.8, 'mechanism');
+
+// Manufacturing export elasticity — quantifies doom loop speed
+graph.addEdge('mfg_export_elast', 'trade_balance', 0.9, 'mechanism');
+graph.addEdge('mfg_export_elast', 'reer_mexico', 0.95, 'mechanism');
+graph.addEdge('mfg_export_elast', 'export_share_asia', 0.85, 'mechanism');
+graph.addEdge('mfg_export_elast', 'labor_comp', 0.8, 'mechanism');
+graph.addEdge('mfg_export_elast', 'rogoff_ppp', 0.7, 'theory');
+graph.addEdge('mfg_export_elast', 'dornbusch', 0.65, 'theory');
+graph.addEdge('mfg_export_elast', 'import_penetration', 0.75, 'correlation');
+
+// Nearshoring capacity utilization — reality check
+graph.addEdge('nearshore_caputil', 'nearshore_actual', 0.95, 'mechanism');
+graph.addEdge('nearshore_caputil', 'fdi_gap', 0.85, 'mechanism');
+graph.addEdge('nearshore_caputil', 'tx_industrial', 0.8, 'correlation');
+graph.addEdge('nearshore_caputil', 'bull_nearshoring', 0.75, 'counter');
+graph.addEdge('nearshore_caputil', 'industrial_prod', 0.7, 'correlation');
+graph.addEdge('nearshore_caputil', 'mty_hou_freight', 0.65, 'correlation');
+graph.addEdge('nearshore_caputil', 'two_mexicos', 0.6, 'correlation');
+
+// Fiscal deficit dynamics — debt sustainability anchor (reduces dexmxus concentration)
+graph.addEdge('fiscal_deficit_dyn', 'debt_gdp', 0.95, 'mechanism');
+graph.addEdge('fiscal_deficit_dyn', 'bull_fiscal', 0.9, 'counter');
+graph.addEdge('fiscal_deficit_dyn', 'oil_fiscal', 0.85, 'mechanism');
+graph.addEdge('fiscal_deficit_dyn', 'mex_cds', 0.75, 'mechanism');
+graph.addEdge('fiscal_deficit_dyn', 'pemex_maturity', 0.7, 'correlation');
+graph.addEdge('fiscal_deficit_dyn', 'banxico_rate', 0.65, 'correlation');
+graph.addEdge('fiscal_deficit_dyn', 'domestic_credit', 0.6, 'correlation');
+graph.addEdge('fiscal_deficit_dyn', 'imf_wp', 0.7, 'theory');
+
+// ============================================================================
+// V6.1b VOLATILITY & INSURANCE LAYER EDGES
+// ============================================================================
+
+// MXN implied vol — price of insurance
+graph.addEdge('mxn_implied_vol', 'vixcls', 0.85, 'correlation');
+graph.addEdge('mxn_implied_vol', 'carry_spread', 0.8, 'mechanism');
+graph.addEdge('mxn_implied_vol', 'cftc_mxn', 0.75, 'correlation');
+graph.addEdge('mxn_implied_vol', 'dexmxus', 0.8, 'mechanism');
+graph.addEdge('mxn_implied_vol', 'jpy_carry', 0.7, 'correlation');
+graph.addEdge('mxn_implied_vol', 'brunnermeier', 0.75, 'theory');
+graph.addEdge('mxn_implied_vol', 'mxn_risk_reversal', 0.9, 'mechanism');
+graph.addEdge('mxn_implied_vol', 'carry_derivatives', 0.7, 'correlation');
+
+// Risk reversals — crash fear pricing
+graph.addEdge('mxn_risk_reversal', 'mex_cds', 0.8, 'correlation');
+graph.addEdge('mxn_risk_reversal', 'carry_spread', 0.75, 'correlation');
+graph.addEdge('mxn_risk_reversal', 'dexmxus', 0.7, 'mechanism');
+graph.addEdge('mxn_risk_reversal', 'peso_problem', 0.8, 'theory');
+graph.addEdge('mxn_risk_reversal', 'cftc_mxn', 0.65, 'correlation');
+graph.addEdge('mxn_risk_reversal', 'tequila_crisis', 0.6, 'theory');
+graph.addEdge('mxn_risk_reversal', 'vixcls', 0.7, 'correlation');
+
+// Cross-currency basis — CIP deviation, funding stress
+graph.addEdge('xccy_basis', 'bush_fx', 0.9, 'mechanism');
+graph.addEdge('xccy_basis', 'carry_derivatives', 0.85, 'mechanism');
+graph.addEdge('xccy_basis', 'carry_spread', 0.8, 'mechanism');
+graph.addEdge('xccy_basis', 'banxico_interv', 0.7, 'correlation');
+graph.addEdge('xccy_basis', 'dexmxus', 0.65, 'correlation');
+graph.addEdge('xccy_basis', 'private_fx_debt', 0.75, 'mechanism');
+graph.addEdge('xccy_basis', 'bis_wp606', 0.7, 'theory');
+graph.addEdge('xccy_basis', 'mxn_implied_vol', 0.75, 'correlation');
+
+// Global dollar liquidity — macro carry driver
+graph.addEdge('dollar_liquidity', 'carry_spread', 0.85, 'mechanism');
+graph.addEdge('dollar_liquidity', 'fed_funds', 0.8, 'mechanism');
+graph.addEdge('dollar_liquidity', 'cftc_mxn', 0.75, 'mechanism');
+graph.addEdge('dollar_liquidity', 'multi_currency_fx', 0.8, 'mechanism');
+graph.addEdge('dollar_liquidity', 'fdijb', 0.7, 'mechanism');
+graph.addEdge('dollar_liquidity', 'vixcls', 0.75, 'correlation');
+graph.addEdge('dollar_liquidity', 'gold', 0.65, 'correlation');
+graph.addEdge('dollar_liquidity', 'dexmxus', 0.7, 'mechanism');
+graph.addEdge('dollar_liquidity', 'credit_spread_em', 0.7, 'correlation');
+graph.addEdge('dollar_liquidity', 'm2_money', 0.8, 'mechanism');
+graph.addEdge('dollar_liquidity', 'mxn_implied_vol', 0.65, 'correlation');
+
+// Hedge ratio intensity connections
+graph.addEdge('hedge_ratio_intensity', 'dexmxus', 0.75, 'mechanism');
+graph.addEdge('hedge_ratio_intensity', 'private_fx_debt', 0.9, 'mechanism');
+graph.addEdge('hedge_ratio_intensity', 'mxn_implied_vol', 0.7, 'correlation');
+graph.addEdge('hedge_ratio_intensity', 'mxn_risk_reversal', 0.65, 'correlation');
+graph.addEdge('hedge_ratio_intensity', 'carry_derivatives', 0.8, 'mechanism');
+graph.addEdge('hedge_ratio_intensity', 'bush_fx', 0.75, 'mechanism');
+graph.addEdge('hedge_ratio_intensity', 'afore', 0.7, 'mechanism');
+graph.addEdge('hedge_ratio_intensity', 'xccy_basis', 0.6, 'correlation');
+graph.addEdge('hedge_ratio_intensity', 'banxico_interv', 0.65, 'mechanism');
+graph.addEdge('hedge_ratio_intensity', 'dollar_liquidity', 0.6, 'correlation');
+graph.addEdge('hedge_ratio_intensity', 'credit_spread_em', 0.55, 'correlation');
+
+// Macro stability internal density
+graph.addEdge('debt_gdp', 'banxico_rate', 0.6, 'correlation');
+graph.addEdge('debt_gdp', 'bop_current', 0.7, 'mechanism');
+graph.addEdge('oil_fiscal', 'banxico_rate', 0.55, 'correlation');
+graph.addEdge('oil_fiscal', 'trade_balance', 0.6, 'correlation');
+graph.addEdge('oil_fiscal', 'bop_current', 0.5, 'correlation');
+graph.addEdge('banxico_decision', 'dexmxus', 0.8, 'mechanism');
+graph.addEdge('banxico_decision', 'real_rate_diff', 0.85, 'mechanism');
+graph.addEdge('banxico_decision', 'inpc_diario', 0.7, 'mechanism');
+
+// ============================================================================
+// DENARIS INSIGHTS (VERBATIM FROM V5)
+// ============================================================================
+
+const denarInsights = {
+    'dexmxus': 'DENARIS CORE THESIS: The peso is trapped in a recursive doom loop—strength attracts carry → carry reinforces strength → strength erodes competitiveness → erosion guarantees eventual sudden stop. The currency\'s resilience IS the vulnerability. Every day of stability adds to the eventual magnitude of correction.',
+    'bull_nearshoring': 'DENARIS FINDING: 78% of "nearshoring FDI" is reinvestment of existing operations, not new greenfield capital. Net new factories: <$15B of $170B headline. Tesla cancellation revealed the entire pipeline as signaling, not commitment.',
+    'houston_bt': 'DENARIS PROPRIETARY: Mexican HNW nationals purchasing Houston RE during peso strength windows achieve 52-85% MXN total returns when inevitable correction hits. This cross-border arbitrage is the $5B signal—smart money already positioning for the unwind.',
+    'trade_balance': 'DENARIS DISCOVERY: Trade deficit widening under strong peso is not import demand—it\'s competitiveness collapse. Manufacturing output contracted 22 consecutive months (PMI <50). The peso is killing Mexico\'s export engine.',
+    'bush_fx': 'DENARIS ANALYSIS: CIP deviations in MXN forward markets signal banks already pricing tail risk. The forward curve is 150-200bp steeper than spot suggests—derivative markets see what spot markets ignore.',
+    'afore': 'DENARIS FINDING: Mexico\'s $488B pension system uses only 16% of its 20% foreign allocation cap. Institutional Mexico is voting with its feet—using peso strength as exit liquidity while the window remains open.',
+    'jpy_carry': 'DENARIS PARALLEL: The August 2024 JPY carry unwind crashed MXN 12% in 3 days with 0.72 correlation. MXN carry is 3x larger by notional. When the unwind comes, it will be worse.',
+    'tequila_crisis': 'DENARIS HISTORICAL: 1994 and today share 4 of 5 preconditions—overvalued currency, carry-funded inflows, political transition, oil dependency. The missing 5th (fixed peg) is replaced by something worse: $400B in OTC derivatives creating synthetic rigidity.',
+    'informality_rate': 'DENARIS STRUCTURAL: 55% informal labor means the peso\'s "strength" benefits only 45% of workers. The other 55% face imported inflation without productivity gains. The paradox has a human face—and it\'s 70 million Mexicans excluded from the carry trade party.',
+    'two_mexicos': 'DENARIS INSIGHT: Northern Mexico (Monterrey, Juárez, Tijuana) operates at developed-market productivity. Southern Mexico operates at Sub-Saharan levels. The peso prices in the north and punishes the south. This dual economy makes single-rate monetary policy impossible.',
+    'reer_mexico': 'DENARIS CALCULATION: Mexico\'s REER is 15-20% above PPP equilibrium. Historical overshoots of this magnitude have corrected within 18-36 months in 7 of 8 EM episodes since 1990.',
+    'fdi_gap': 'DENARIS TRACKING: Cumulative FDI execution shortfall since 2023: ~$155B. This is not a pipeline delay—it\'s a structural credibility gap. The gap between announcements and completions widened every quarter of 2024.',
+    'carry_derivatives': 'DENARIS FINANCIALIZATION: The $400B+ MXN OTC derivatives market is not hedging—it IS the peso. Notional outstanding exceeds Mexico\'s GDP. The currency has become a derivative of global risk appetite, not a reflection of Mexican fundamentals. When you trade MXN, you\'re not trading Mexico—you\'re trading the carry trade itself.',
+    'private_fx_debt': 'DENARIS RISK: Mexican corporate USD debt creates a hidden accelerant. When the peso weakens, balance sheets deteriorate → credit downgrades → capital flight → more peso weakness. This is the reflexive channel Soros described, but with $200B+ in corporate FX exposure as the fuel.',
+    'domestic_credit': 'DENARIS SIGNAL: Domestic credit growth outpacing GDP signals financial overheating. When combined with carry-funded inflows, this creates a credit-FX doom loop—easy money inflates assets, assets attract more carry, carry strengthens the peso, strong peso enables more borrowing in USD.',
+    'export_share_asia': 'DENARIS COMPETITIVENESS: Mexico\'s share of US imports has declined vs Vietnam and India since 2022 despite nearshoring narrative. The strong peso is doing what the textbooks predict—pricing Mexican manufacturers out of their largest market. This is doom loop leg 3 in real time.',
+    'mfg_export_elast': 'DENARIS QUANTIFICATION: Estimated REER elasticity of -0.6 to -0.8 for manufacturing exports means every 10% real appreciation costs Mexico 6-8% of export volume. At current 15-20% overvaluation, that\'s a 9-16% structural export loss—already visible in 22 months of PMI contraction.',
+    'fiscal_deficit_dyn': 'DENARIS FISCAL: The primary deficit trajectory is the sleeper risk. Pemex transfers, social spending commitments, and declining oil revenue create structural deficit pressure. If markets lose confidence in fiscal consolidation, the carry trade loses its "macro stability" justification overnight.',
+    'mxn_implied_vol': 'DENARIS VOLATILITY: MXN implied vol is the carry trade\'s canary. When 1M vol trades below 8%, carry-to-vol ratios become irresistible and positioning crowds. But compressed vol is not low risk—it\'s compressed premium on tail events. Every major EM blowup was preceded by historically low implied vol. The cheaper the insurance, the bigger the eventual claim.',
+    'xccy_basis': 'DENARIS FUNDING: The cross-currency basis is the market\'s real-time verdict on dollar availability for MXN borrowers. When basis widens beyond -50bp, it signals that the plumbing of carry is breaking down—banks can\'t fund MXN positions cheaply. This preceded the March 2020 crash by 48 hours and the Aug 2024 JPY unwind by 72 hours.',
+    'dollar_liquidity': 'DENARIS MACRO: Global dollar liquidity is the invisible tide that floats all carry boats. Fed reserves + RRP + TGA create the funding ocean. When the tide goes out—QT acceleration, RRP drainage, TGA rebuilds—every carry trade in every currency unwinds simultaneously. MXN is the most liquid EM proxy, so it moves first and furthest.',
+    'hedge_ratio_intensity': 'DENARIS HEDGE GAP: Mexican corporates hedge only 25-35% of FX exposure vs 60-80% for Asian EM peers. This "hedge gap" is the carry trade\'s hidden accelerant—when MXN weakens, unhedged corporates scramble for dollars simultaneously, creating the reflexive feedback that turns 5% corrections into 15% crashes. The AFORE pension system\'s 84% domestic bias means institutional Mexico is similarly exposed. Hedge ratio is not a risk metric—it\'s the amplifier coefficient.'
+};
+
+// Continue in next section...
+
+// ============================================================================
+// GRAPH ALGORITHMS (VERBATIM FROM V5)
+// ============================================================================
+
+function louvainCommunity(nodes, edges) {
+    const idxMap = {};
+    nodes.forEach((n, i) => { idxMap[n.id] = i; });
+    const adj = {};
+    const degree = {};
+    let m = 0;
+    nodes.forEach((n, i) => { adj[i] = {}; degree[i] = 0; });
+
+    edges.forEach(e => {
+        const si = idxMap[e.source];
+        const ti = idxMap[e.target];
+        if (si !== undefined && ti !== undefined) {
+            const w = e.weight || 1;
+            adj[si][ti] = (adj[si][ti] || 0) + w;
+            adj[ti][si] = (adj[ti][si] || 0) + w;
+            degree[si] += w;
+            degree[ti] += w;
+            m += w;
+        }
+    });
+
+    if (m === 0) {
+        const result = {};
+        nodes.forEach((n, i) => { result[i] = [n.id]; });
+        return result;
+    }
+
+    let comm = {};
+    nodes.forEach((n, i) => { comm[i] = i; });
+
+    let commSumTot = {};
+    nodes.forEach((n, i) => { commSumTot[i] = degree[i]; });
+
+    let improved = true;
+    let iterations = 0;
+    while (improved && iterations < 100) {
+        improved = false;
+        iterations++;
+
+        const order = nodes.map((_, i) => i);
+        for (let k = order.length - 1; k > 0; k--) {
+            const j = Math.floor(rng() * (k + 1));
+            [order[k], order[j]] = [order[j], order[k]];
+        }
+
+        order.forEach(i => {
+            const currentComm = comm[i];
+            const ki = degree[i];
+
+            const neighborComms = {};
+            let kiCurrentIn = 0;
+            Object.keys(adj[i]).forEach(jStr => {
+                const j = parseInt(jStr);
+                const c = comm[j];
+                const w = adj[i][j];
+                neighborComms[c] = (neighborComms[c] || 0) + w;
+            });
+            kiCurrentIn = neighborComms[currentComm] || 0;
+
+            const sigmaCurrentWithout = commSumTot[currentComm] - ki;
+
+            let bestComm = currentComm;
+            let bestDeltaQ = 0;
+
+            Object.keys(neighborComms).forEach(cStr => {
+                const c = parseInt(cStr);
+                if (c === currentComm) return;
+
+                const kiIn = neighborComms[c];
+                const sigmaTot = commSumTot[c];
+
+                const deltaQ = (kiIn - kiCurrentIn) / m - ki * (sigmaTot - sigmaCurrentWithout) / (2 * m * m);
+
+                if (deltaQ > bestDeltaQ) {
+                    bestDeltaQ = deltaQ;
+                    bestComm = c;
+                }
+            });
+
+            if (bestComm !== currentComm) {
+                commSumTot[currentComm] -= ki;
+                commSumTot[bestComm] = (commSumTot[bestComm] || 0) + ki;
+                comm[i] = bestComm;
+                improved = true;
+            }
+        });
+    }
+
+    const result = {};
+    nodes.forEach((n, i) => {
+        const c = comm[i];
+        if (!result[c]) result[c] = [];
+        result[c].push(n.id);
+    });
+    return result;
+}
+
+function brandesBetweenness(nodes, edges) {
+    const bc = {};
+    const nodeIds = [];
+    for (let i = 0; i < nodes.length; i++) {
+        bc[nodes[i].id] = 0;
+        nodeIds.push(nodes[i].id);
+    }
+    const n = nodeIds.length;
+
+    const idToIdx = {};
+    for (let i = 0; i < n; i++) idToIdx[nodeIds[i]] = i;
+    const adj = new Array(n);
+    for (let i = 0; i < n; i++) adj[i] = [];
+    for (let i = 0; i < edges.length; i++) {
+        const e = edges[i];
+        const si = idToIdx[e.source], ti = idToIdx[e.target];
+        if (si === undefined || ti === undefined) continue;
+        const cost = 1.0 / (e.weight || 0.5);
+        adj[si].push({ t: ti, c: cost });
+        adj[ti].push({ t: si, c: cost });
+    }
+
+    const sigma = new Float64Array(n);
+    const dist = new Float64Array(n);
+    const delta = new Float64Array(n);
+    const pred = new Array(n);
+    const stack = [];
+
+    const heapNodes = [];
+    function heapPush(idx, d) {
+        heapNodes.push({ idx, d });
+        let i = heapNodes.length - 1;
+        while (i > 0) {
+            const parent = (i - 1) >> 1;
+            if (heapNodes[parent].d <= heapNodes[i].d) break;
+            const tmp = heapNodes[parent]; heapNodes[parent] = heapNodes[i]; heapNodes[i] = tmp;
+            i = parent;
+        }
+    }
+    function heapPop() {
+        const top = heapNodes[0];
+        const last = heapNodes.pop();
+        if (heapNodes.length > 0) {
+            heapNodes[0] = last;
+            let i = 0;
+            while (true) {
+                let smallest = i;
+                const l = 2 * i + 1, r = 2 * i + 2;
+                if (l < heapNodes.length && heapNodes[l].d < heapNodes[smallest].d) smallest = l;
+                if (r < heapNodes.length && heapNodes[r].d < heapNodes[smallest].d) smallest = r;
+                if (smallest === i) break;
+                const tmp = heapNodes[smallest]; heapNodes[smallest] = heapNodes[i]; heapNodes[i] = tmp;
+                i = smallest;
+            }
+        }
+        return top;
+    }
+
+    for (let s = 0; s < n; s++) {
+        stack.length = 0;
+        for (let i = 0; i < n; i++) {
+            pred[i] = [];
+            sigma[i] = 0;
+            dist[i] = Infinity;
+            delta[i] = 0;
+        }
+        sigma[s] = 1;
+        dist[s] = 0;
+        heapNodes.length = 0;
+        heapPush(s, 0);
+
+        while (heapNodes.length > 0) {
+            const { idx: v, d: dv } = heapPop();
+            if (dv > dist[v]) continue;
+            stack.push(v);
+
+            const neighbors = adj[v];
+            for (let j = 0; j < neighbors.length; j++) {
+                const { t: w, c: cost } = neighbors[j];
+                const newDist = dist[v] + cost;
+                if (newDist < dist[w] - 1e-10) {
+                    dist[w] = newDist;
+                    sigma[w] = sigma[v];
+                    pred[w] = [v];
+                    heapPush(w, newDist);
+                } else if (Math.abs(newDist - dist[w]) < 1e-10) {
+                    sigma[w] += sigma[v];
+                    pred[w].push(v);
+                }
+            }
+        }
+
+        for (let i = stack.length - 1; i >= 0; i--) {
+            const w = stack[i];
+            const pw = pred[w];
+            for (let j = 0; j < pw.length; j++) {
+                delta[pw[j]] += (sigma[pw[j]] / sigma[w]) * (1 + delta[w]);
+            }
+            if (w !== s) bc[nodeIds[w]] += delta[w];
+        }
+    }
+
+    return bc;
+}
+
+function eigenvectorCentrality(nodes, edges, maxIter = 30) {
+    const ec = {};
+    nodes.forEach(n => { ec[n.id] = 1.0 / nodes.length; });
+
+    for (let iter = 0; iter < maxIter; iter++) {
+        const next = {};
+        nodes.forEach(n => { next[n.id] = 0; });
+        edges.forEach(e => {
+            const wt = e.weight || 1;
+            next[e.source] += ec[e.target] * wt;
+            next[e.target] += ec[e.source] * wt;
+        });
+
+        let norm = 0;
+        nodes.forEach(n => { norm += next[n.id] * next[n.id]; });
+        norm = Math.sqrt(norm) || 1;
+
+        nodes.forEach(n => { ec[n.id] = next[n.id] / norm; });
+    }
+
+    const degreeCount = {};
+    nodes.forEach(n => { degreeCount[n.id] = 0; });
+    edges.forEach(e => { degreeCount[e.source]++; degreeCount[e.target]++; });
+    const avgDegree = edges.length * 2 / nodes.length;
+
+    nodes.forEach(n => {
+        const d = degreeCount[n.id] || 1;
+        if (d > avgDegree * 2) {
+            ec[n.id] *= Math.sqrt(avgDegree * 2 / d);
+        }
+    });
+
+    let norm2 = 0;
+    nodes.forEach(n => { norm2 += ec[n.id] * ec[n.id]; });
+    norm2 = Math.sqrt(norm2) || 1;
+    nodes.forEach(n => { ec[n.id] = ec[n.id] / norm2; });
+
+    return ec;
+}
+
+function kCoreDec(nodes, edges) {
+    const kcore = {};
+    const degree = {};
+    const adj = {};
+
+    nodes.forEach(n => {
+        degree[n.id] = 0;
+        adj[n.id] = new Set();
+    });
+
+    edges.forEach(e => {
+        adj[e.source].add(e.target);
+        adj[e.target].add(e.source);
+        degree[e.source]++;
+        degree[e.target]++;
+    });
+
+    let k = 0;
+    const remaining = new Set(nodes.map(n => n.id));
+
+    while (remaining.size > 0) {
+        let minDeg = Infinity;
+        let minNode = null;
+        remaining.forEach(id => {
+            if (degree[id] < minDeg) {
+                minDeg = degree[id];
+                minNode = id;
+            }
+        });
+
+        if (minNode === null) break;
+
+        if (minDeg === Infinity) {
+            minDeg = 0;
+        }
+
+        kcore[minNode] = Math.max(minDeg, k);
+        remaining.delete(minNode);
+
+        adj[minNode].forEach(neighbor => {
+            if (remaining.has(neighbor)) {
+                degree[neighbor]--;
+            }
+        });
+
+        k = minDeg;
+    }
+
+    return kcore;
+}
+
+function findArticulationPoints(nodes, edges) {
+    const adj = {};
+    nodes.forEach(n => { adj[n.id] = []; });
+    edges.forEach(e => {
+        adj[e.source].push(e.target);
+        adj[e.target].push(e.source);
+    });
+
+    const visited = {};
+    const disc = {};
+    const low = {};
+    const parent = {};
+    const ap = new Set();
+    let time = 0;
+
+    function dfs(u) {
+        visited[u] = true;
+        disc[u] = low[u] = time++;
+        let children = 0;
+
+        adj[u].forEach(v => {
+            if (!visited[v]) {
+                children++;
+                parent[v] = u;
+                dfs(v);
+                low[u] = Math.min(low[u], low[v]);
+
+                if ((parent[u] === undefined && children > 1) || (parent[u] !== undefined && low[v] >= disc[u])) {
+                    ap.add(u);
+                }
+            } else if (v !== parent[u]) {
+                low[u] = Math.min(low[u], disc[v]);
+            }
+        });
+    }
+
+    nodes.forEach(n => {
+        if (!visited[n.id]) dfs(n.id);
+    });
+
+    return ap;
+}
+
+// ============================================================================
+// ORBITAL PHYSICS ENGINE (NEW FOR V6)
+// ============================================================================
+
+class OrbitalPhysicsEngine {
+    constructor(graph, config) {
+        this.graph = graph;
+        this.config = config;
+        this.frozen = false;
+        this.freezeCounter = 0;
+        this.unfreezeCounter = 0;
+    }
+
+    unfreeze(duration = 200) {
+        this.frozen = false;
+        this.unfreezeCounter = duration;
+    }
+
+    step() {
+        const nodes = this.graph.nodeList;
+        const edges = this.graph.edges;
+        const nodesMap = this.graph.nodes;
+        const REP = this.config.REPULSION;
+        const ATTR = this.config.ATTRACTION;
+        const CX = this.config.CENTER_X;
+        const CY = this.config.CENTER_Y;
+        const DAMP = this.config.DAMPING;
+        const MAXV = this.config.MAX_VELOCITY;
+        const W = this.config.WIDTH;
+        const H = this.config.HEIGHT;
+        const len = nodes.length;
+
+        // Reset forces
+        for (let i = 0; i < len; i++) {
+            nodes[i].fx = 0; nodes[i].fy = 0; nodes[i].fz = 0;
+        }
+
+        // Repulsion (O(n²))
+        for (let i = 0; i < len; i++) {
+            const n1 = nodes[i];
+            const x1 = n1.x, y1 = n1.y, z1 = n1.z;
+            for (let j = i + 1; j < len; j++) {
+                const n2 = nodes[j];
+                const dx = n2.x - x1;
+                const dy = n2.y - y1;
+                const dz = n2.z - z1;
+                const d2 = dx * dx + dy * dy + dz * dz + 0.01;
+                const invD = 1.0 / Math.sqrt(d2);
+                const rep = REP / d2;
+                const fx = rep * dx * invD;
+                const fy = rep * dy * invD;
+                const fz = rep * dz * invD;
+                n1.fx -= fx; n1.fy -= fy; n1.fz -= fz;
+                n2.fx += fx; n2.fy += fy; n2.fz += fz;
+            }
+        }
+
+        // Attraction via edges
+        for (let i = 0, el = edges.length; i < el; i++) {
+            const e = edges[i];
+            const n1 = nodesMap[e.source];
+            const n2 = nodesMap[e.target];
+            if (!n1 || !n2) continue;
+            const dx = n2.x - n1.x;
+            const dy = n2.y - n1.y;
+            const dz = n2.z - n1.z;
+            const d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01;
+            const attr = ATTR * e.weight;
+            const fx = attr * dx;
+            const fy = attr * dy;
+            const fz = attr * dz;
+            n1.fx += fx; n1.fy += fy; n1.fz += fz;
+            n2.fx -= fx; n2.fy -= fy; n2.fz -= fz;
+        }
+
+        // Orbital physics: radial spring toward assigned orbit, tangential drift, same-ring repulsion
+        for (let i = 0; i < len; i++) {
+            const n = nodes[i];
+            
+            if (n.id === 'dexmxus') {
+                // Sun: strong centering force
+                const dx = CX - n.x;
+                const dy = CY - n.y;
+                n.fx += 0.12 * dx;
+                n.fy += 0.12 * dy;
+            } else if (n.orbitRadius > 5) {
+                // Radial spring: pull toward assigned orbit radius
+                const rx = n.x - CX;
+                const ry = n.y - CY;
+                const currentR = Math.sqrt(rx * rx + ry * ry) + 0.01;
+                const targetR = n.orbitRadius;
+                const radialForce = (targetR - currentR) * 0.03;
+                const radialX = (rx / currentR) * radialForce;
+                const radialY = (ry / currentR) * radialForce;
+                n.fx += radialX;
+                n.fy += radialY;
+                
+                // Tangential drift: slow orbit around center
+                const tangentialSpeed = 0.002 / (1 + n.orbitRadius * 0.001);
+                const angle = Math.atan2(ry, rx) + tangentialSpeed;
+                const newX = CX + Math.cos(angle) * currentR;
+                const newY = CY + Math.sin(angle) * currentR;
+                const tangentialForce = 0.002;
+                n.fx += (newX - n.x) * tangentialForce;
+                n.fy += (newY - n.y) * tangentialForce;
+            }
+        }
+
+        // Update velocities & positions
+        let maxVel = 0;
+        for (let i = 0; i < len; i++) {
+            const n = nodes[i];
+            n.vx = (n.vx + n.fx) * DAMP;
+            n.vy = (n.vy + n.fy) * DAMP;
+            n.vz = (n.vz + n.fz) * DAMP;
+
+            const vel2 = n.vx * n.vx + n.vy * n.vy + n.vz * n.vz;
+            if (vel2 > maxVel) maxVel = vel2;
+
+            if (vel2 > MAXV * MAXV) {
+                const scale = MAXV / Math.sqrt(vel2);
+                n.vx *= scale; n.vy *= scale; n.vz *= scale;
+            }
+
+            n.x += n.vx;
+            n.y += n.vy;
+            n.z += n.vz;
+
+            // Boundary clamping
+            if (n.x < 20) n.x = 20; else if (n.x > W - 20) n.x = W - 20;
+            if (n.y < 70) n.y = 70; else if (n.y > H - 20) n.y = H - 20;
+        }
+        maxVel = Math.sqrt(maxVel);
+
+        // Freezing logic
+        if (this.unfreezeCounter > 0) {
+            this.unfreezeCounter--;
+        } else if (!this.frozen && maxVel < 0.05) {
+            this.freezeCounter++;
+            if (this.freezeCounter > this.config.FREEZE_THRESHOLD) {
+                this.frozen = true;
+                nodes.forEach(n => {
+                    n.vx = n.vy = n.vz = 0;
+                });
+            }
+        } else {
+            this.freezeCounter = 0;
+        }
+    }
+
+    reset() {
+        this.graph.getNodes().forEach(n => {
+            n.x = CONFIG.CENTER_X + (rng() - 0.5) * 60;
+            n.y = CONFIG.CENTER_Y + (rng() - 0.5) * 60;
+            n.z = 0;
+            n.vx = n.vy = n.vz = 0;
+        });
+        this.frozen = false;
+        this.freezeCounter = 0;
+        this.unfreezeCounter = this.config.UNFREEZE_FRAMES;
+    }
+}
+
+// ============================================================================
+// 3D CAMERA SYSTEM (MODIFIED LABELS FOR V6)
+// ============================================================================
+
+class Camera3D {
+    constructor(config) {
+        this.config = config;
+        this.mode = 'top-down';
+        this.angle = 0;
+        this.targetAngle = 0;
+        this.pitch = 0;
+        this.targetPitch = 0;
+        this.roll = 0;
+        this.autoRotate = false;
+        this.zoom = 1.0;
+        this.targetZoom = 1.0;
+        this.panX = 0;
+        this.panY = 0;
+    }
+
+    setMode(mode) {
+        this.mode = mode;
+        if (mode === 'top-down') {
+            this.targetPitch = 0;
+            this.targetAngle = 0;
+            this.autoRotate = false;
+        } else if (mode === 'tilted') {
+            this.targetPitch = -Math.PI / 4;
+            this.targetAngle = 0;
+            this.autoRotate = false;
+        } else if (mode === 'auto-orbit') {
+            this.targetPitch = -Math.PI / 6;
+            this.autoRotate = true;
+        }
+    }
+
+    update() {
+        this.pitch += (this.targetPitch - this.pitch) * 0.1;
+        if (this.autoRotate) {
+            this.targetAngle += 0.01;
+        }
+        this.angle += (this.targetAngle - this.angle) * 0.1;
+        this.zoom += (this.targetZoom - this.zoom) * 0.15;
+    }
+
+    zoomIn() { this.targetZoom = Math.min(5.0, this.targetZoom * 1.2); }
+    zoomOut() { this.targetZoom = Math.max(0.2, this.targetZoom / 1.2); }
+    resetZoom() { this.targetZoom = 1.0; this.panX = 0; this.panY = 0; }
+
+    projectPoint(node) {
+        const rx = node.x - this.config.CENTER_X;
+        const ry = node.y - this.config.CENTER_Y;
+        const rz = node.orbitZ || 0;
+
+        let x = rx * Math.cos(this.angle) - rz * Math.sin(this.angle);
+        let yzPlane = rx * Math.sin(this.angle) + rz * Math.cos(this.angle);
+
+        let y = ry * Math.cos(this.pitch) - yzPlane * Math.sin(this.pitch);
+        let zScreen = ry * Math.sin(this.pitch) + yzPlane * Math.cos(this.pitch);
+
+        const perspective = 1 + zScreen * 0.001;
+        const screenX = (x / perspective) * this.zoom + this.config.CENTER_X + this.panX;
+        const screenY = (y / perspective) * this.zoom + this.config.CENTER_Y + this.panY;
+        const scale = (0.8 + zScreen * 0.0005) * this.zoom;
+
+        return { x: screenX, y: screenY, z: zScreen, scale: Math.max(0.3, scale) };
+    }
+}
+
+// ============================================================================
+// STAR FIELD GENERATOR
+// ============================================================================
+
+function generateStarField(width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = 'transparent';
+    ctx.fillRect(0, 0, width, height);
+    
+    let rngStar = mulberry32(123);
+    
+    for (let i = 0; i < 200; i++) {
+        const x = rngStar() * width;
+        const y = rngStar() * height;
+        const size = rngStar() * 1.5 + 0.5;
+        const opacity = rngStar() * 0.6 + 0.2;
+        const isBlue = rngStar() > 0.7;
+        
+        ctx.fillStyle = isBlue ? `rgba(150, 180, 255, ${opacity})` : `rgba(255, 255, 255, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    return canvas;
+}
+
+// ============================================================================
+// MAIN VISUALIZATION
+// ============================================================================
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = CONFIG.WIDTH;
+canvas.height = CONFIG.HEIGHT;
+
+const physics = new OrbitalPhysicsEngine(graph, CONFIG);
+const camera = new Camera3D(CONFIG);
+const starField = generateStarField(CONFIG.WIDTH, CONFIG.HEIGHT);
+
+let communities = {};
+let communityColors = {};
+let communityOrbits = {};
+let eigenCent = {};
+let betweenCent = {};
+let kcore = {};
+let articulationPoints = new Set();
+
+let activeSections = new Set(['S1', 'S2', 'S3', 'S4', 'S5']);
+let showBullCases = true;
+let showLabels = true;
+let showEdges = true;
+let showRings = true;
+let yearFrom = 1970;
+let yearTo = 2026;
+
+let hoveredNode = null;
+let selectedCommunity = null;
+let lastProjMap = {};
+let cachedNodeCount = 0, cachedEdgeCount = 0;
+
+let activeEdgeTypes = new Set(['mechanism','theory','data_lineage','counter','correlation']);
+let removedNodes = new Set();
+
+// Nucleus View: click any node to see connectivity radiating outward by hop distance
+let nucleusNode = null;      // the selected center node (null = off)
+let nucleusDistMap = {};     // nodeId → hop distance from nucleus (BFS)
+const NUCLEUS_MAX_HOPS = 5;  // fade beyond this
+
+function computeNucleusDistances(centerId) {
+    nucleusDistMap = {};
+    if (!centerId) return;
+    const adj = {};
+    graph.getNodes().forEach(n => { adj[n.id] = []; });
+    graph.getEdges().forEach(e => {
+        if (activeEdgeTypes.has(e.type)) {
+            adj[e.source].push(e.target);
+            adj[e.target].push(e.source);
+        }
+    });
+    // BFS from center
+    nucleusDistMap[centerId] = 0;
+    const queue = [centerId];
+    let qi = 0;
+    while (qi < queue.length) {
+        const curr = queue[qi++];
+        const d = nucleusDistMap[curr];
+        if (d >= NUCLEUS_MAX_HOPS) continue;
+        (adj[curr] || []).forEach(nb => {
+            if (nucleusDistMap[nb] === undefined) {
+                nucleusDistMap[nb] = d + 1;
+                queue.push(nb);
+            }
+        });
+    }
+}
+
+function getNucleusAlpha(nodeId) {
+    if (!nucleusNode) return 1;
+    const d = nucleusDistMap[nodeId];
+    if (d === undefined) return 0.04;  // unreachable
+    if (d === 0) return 1;              // nucleus itself
+    if (d === 1) return 1;              // direct connections
+    if (d === 2) return 0.6;
+    if (d === 3) return 0.3;
+    if (d === 4) return 0.15;
+    return 0.06;
+}
+
+// ============================================================================
+// RECOMPUTE ALL ALGORITHMS (MODIFIED FOR ORBITAL ASSIGNMENT)
+// ============================================================================
+
+function recomputeAll() {
+    const nodes = graph.getNodes();
+    const edges = graph.getEdges();
+
+    let filteredNodes = nodes.filter(n => {
+        const yearOk = n.year >= yearFrom && n.year <= yearTo;
+        const sectionOk = n.sections.some(s => activeSections.has(s));
+        const bullOk = showBullCases || n.type !== 'bull_case';
+        const notRemoved = !removedNodes.has(n.id);
+        return yearOk && sectionOk && bullOk && notRemoved;
+    });
+
+    const filteredNodeSet = new Set(filteredNodes.map(n => n.id));
+    let filteredEdges = edges.filter(e => {
+        return filteredNodeSet.has(e.source) && filteredNodeSet.has(e.target) && activeEdgeTypes.has(e.type);
+    });
+
+    communities = louvainCommunity(filteredNodes, filteredEdges);
+    eigenCent = eigenvectorCentrality(filteredNodes, filteredEdges);
+    betweenCent = brandesBetweenness(filteredNodes, filteredEdges);
+    kcore = kCoreDec(filteredNodes, filteredEdges);
+    articulationPoints = findArticulationPoints(filteredNodes, filteredEdges);
+
+    // Rank communities by aggregate centrality
+    const maxEigenForOrbit = Math.max(...Object.values(eigenCent), 0.01);
+    const commCentrality = {};
+    Object.keys(communities).forEach(comm => {
+        commCentrality[comm] = communities[comm].reduce((sum, id) => sum + (eigenCent[id] || 0), 0);
+    });
+    const rankedComms = Object.keys(communities).sort((a, b) => commCentrality[b] - commCentrality[a]);
+
+    // Assign orbital layers
+    communityOrbits = {};
+    rankedComms.forEach((comm, idx) => {
+        communityOrbits[comm] = idx;
+    });
+
+    // Assign colors and orbital parameters to nodes
+    communityColors = {};
+    rankedComms.forEach((comm, idx) => {
+        communityColors[comm] = CONFIG.COLORS[idx % CONFIG.COLORS.length];
+        const orbitLayer = communityOrbits[comm];
+        
+        // Assign orbit radius: layer 0 = center, each layer further out
+        const baseRadius = 120 + orbitLayer * 90;
+        
+        // Sort nodes in community by eigenvector centrality for angle assignment
+        const commNodes = communities[comm];
+        const sortedByEC = commNodes.sort((a, b) => (eigenCent[b] || 0) - (eigenCent[a] || 0));
+        
+        sortedByEC.forEach((nodeId, angleIdx) => {
+            const node = graph.getNode(nodeId);
+            node.community = comm;
+            node.color = communityColors[comm];
+            
+            // Assign orbital radius
+            node.orbitRadius = baseRadius;
+            
+            // Assign orbital angle: evenly spaced around the circle
+            const angleStepRad = (2 * Math.PI) / commNodes.length;
+            node.orbitAngle = angleIdx * angleStepRad;
+            
+            // Z depth based on community layer
+            const layerSign = (orbitLayer % 2 === 0) ? 1 : -1;
+            const layerDist = Math.ceil((orbitLayer + 1) / 2);
+            node.orbitZ = layerSign * layerDist * 90 + ((eigenCent[nodeId] || 0) / maxEigenForOrbit) * 25 - 12;
+        });
+    });
+
+    // dexmxus special: always at center, z=0
+    const sunNode = graph.getNode('dexmxus');
+    if (sunNode) {
+        sunNode.orbitRadius = 0;
+        sunNode.orbitAngle = 0;
+        sunNode.orbitZ = 0;
+    }
+
+    // Update stats
+    cachedNodeCount = filteredNodes.length;
+    cachedEdgeCount = filteredEdges.length;
+    cachedMaxEigen = Math.max(...Object.values(eigenCent), 0.01);
+    invalidateRenderCache();
+    document.getElementById('stat-nodes').textContent = cachedNodeCount;
+    document.getElementById('stat-edges').textContent = cachedEdgeCount;
+    document.getElementById('stat-communities').textContent = Object.keys(communities).length;
+
+    const density = filteredEdges.length / (filteredNodes.length * (filteredNodes.length - 1) / 2);
+    document.getElementById('stat-density').textContent = density.toFixed(3);
+
+    // ── Peso Fragility Index™ ──
+    // Composite: betweenness concentration + carry centrality + financialization + influence peakedness
+    // Calibrated so baseline (all filters on) scores ~60-70, leaving headroom under stress
+    const bcValues = Object.values(betweenCent);
+    const maxBc = Math.max(...bcValues, 0.01);
+    const totalBc = bcValues.reduce((s, v) => s + v, 0) || 1;
+
+    // Component 1: Betweenness concentration (Herfindahl-like)
+    // bcHHI ~0.10 for 95 nodes. bcHHI * N ~ 9.7. Multiplier 1.75 → ~17 baseline
+    let bcHHI = 0;
+    bcValues.forEach(v => { const share = v / totalBc; bcHHI += share * share; });
+    const bcConcentration = Math.min(bcHHI * filteredNodes.length * 1.75, 25);
+
+    // Component 2: Carry spread centrality — normalized eigenvector ratio
+    // carry_spread is ~1.0 of max. Multiplier 18 → ~18 baseline
+    const carryEc = (eigenCent['carry_spread'] || 0) / cachedMaxEigen;
+    const carryCentrality = Math.min(carryEc * 18, 25);
+
+    // Component 3: Derivatives cluster weight — financialization depth
+    // Sum of 6 deriv node ratios ~2.4. Multiplier 6.5 → ~16 baseline
+    const derivNodeIds = ['carry_derivatives', 'bush_fx', 'cftc_mxn', 'cftc_cme', 'cftc_cot', 'private_fx_debt'];
+    let derivWeight = 0;
+    derivNodeIds.forEach(id => { derivWeight += (eigenCent[id] || 0) / cachedMaxEigen; });
+    const financialization = Math.min(derivWeight * 6.5, 25);
+
+    // Component 4: Influence peakedness — how top-heavy is the eigenvector distribution?
+    // Ratio of top-2 nodes' eigenvector share vs top-10 average. Higher = more concentrated risk
+    const ecSorted = Object.values(eigenCent).sort((a, b) => b - a);
+    const top2Avg = ((ecSorted[0] || 0) + (ecSorted[1] || 0)) / 2;
+    const top10Avg = ecSorted.slice(0, 10).reduce((s, v) => s + v, 0) / 10;
+    const peakRatio = top10Avg > 0 ? top2Avg / top10Avg : 1;
+    // peakRatio ~1.4 for current network. Multiplier 12 → ~17 baseline
+    const influencePeak = Math.min(peakRatio * 12, 25);
+
+    const fragilityIndex = Math.round(bcConcentration + carryCentrality + financialization + influencePeak);
+    document.getElementById('stat-fragility').textContent = fragilityIndex;
+
+    // Write sub-score decomposition
+    document.getElementById('frag-bc').textContent = Math.round(bcConcentration);
+    document.getElementById('frag-carry').textContent = Math.round(carryCentrality);
+    document.getElementById('frag-fin').textContent = Math.round(financialization);
+    document.getElementById('frag-peak').textContent = Math.round(influencePeak);
+
+    // Color-code fragility + sub-scores
+    const fragEl = document.getElementById('stat-fragility');
+    if (fragilityIndex >= 70) { fragEl.style.color = '#ef4444'; }
+    else if (fragilityIndex >= 45) { fragEl.style.color = '#f59e0b'; }
+    else { fragEl.style.color = '#4ade80'; }
+
+    // Color-code individual sub-scores
+    ['frag-bc', 'frag-carry', 'frag-fin', 'frag-peak'].forEach(id => {
+        const el = document.getElementById(id);
+        const val = parseInt(el.textContent);
+        if (val >= 18) el.style.color = '#ef4444';
+        else if (val >= 12) el.style.color = '#f59e0b';
+        else el.style.color = '#4ade80';
+    });
+
+    updateLegend();
+}
+
+function updateLegend() {
+    const legend = document.getElementById('legend');
+    legend.innerHTML = '<strong style="color: #fbbf24;">Communities</strong><br>';
+
+    const sortedComms = Object.keys(communityColors).sort((a, b) =>
+        (communityOrbits[a] || 99) - (communityOrbits[b] || 99)
+    );
+    sortedComms.forEach(comm => {
+        const color = communityColors[comm];
+        const nodes = communities[comm] || [];
+        const orbit = communityOrbits[comm] || 0;
+        let bestNode = null, bestEc = -1;
+        nodes.forEach(id => {
+            if ((eigenCent[id] || 0) > bestEc) { bestEc = eigenCent[id] || 0; bestNode = graph.getNode(id); }
+        });
+        const label = bestNode ? bestNode.name.split('\n')[0] : 'Unknown';
+        const orbitLabel = orbit === 0 ? 'Core' : `Orbit ${orbit}`;
+
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.style.cursor = 'pointer';
+        item.innerHTML = `<div class="legend-color" style="background: ${color};"></div><span>${label} <span style="color:#a78bfa;font-size:9px;">(${orbitLabel}, ${nodes.length}n)</span></span>`;
+        item.addEventListener('click', () => {
+            selectedCommunity = selectedCommunity === comm ? null : comm;
+        });
+        legend.appendChild(item);
+    });
+}
+
+// ============================================================================
+// RENDER LOOP
+// ============================================================================
+
+let _cachedRenderNodes = null;
+let _cachedRenderEdges = null;
+let _renderFilterDirty = true;
+
+function invalidateRenderCache() { _renderFilterDirty = true; }
+
+function getFilteredNodesEdges() {
+    if (!_renderFilterDirty && _cachedRenderNodes) {
+        return { nodes: _cachedRenderNodes, edges: _cachedRenderEdges };
+    }
+    const allNodes = graph.getNodes();
+    const nodes = [];
+    for (let i = 0; i < allNodes.length; i++) {
+        const n = allNodes[i];
+        if (n.year < yearFrom || n.year > yearTo) continue;
+        if (!n.sections.some(s => activeSections.has(s))) continue;
+        if (!showBullCases && n.type === 'bull_case') continue;
+        if (removedNodes.has(n.id)) continue;
+        nodes.push(n);
+    }
+    const nodeSet = new Set(nodes.map(n => n.id));
+    const allEdges = graph.getEdges();
+    const edges = [];
+    for (let i = 0; i < allEdges.length; i++) {
+        const e = allEdges[i];
+        if (nodeSet.has(e.source) && nodeSet.has(e.target) && activeEdgeTypes.has(e.type)) {
+            edges.push(e);
+        }
+    }
+    _cachedRenderNodes = nodes;
+    _cachedRenderEdges = edges;
+    _renderFilterDirty = false;
+    return { nodes, edges };
+}
+
+let cachedMaxEigen = 0.01;
+
+function render() {
+    // Draw star field first
+    ctx.drawImage(starField, 0, 0);
+    
+    // Radial gradient background
+    const gradient = ctx.createRadialGradient(CONFIG.CENTER_X, CONFIG.CENTER_Y, 0, CONFIG.CENTER_X, CONFIG.CENTER_Y, Math.max(CONFIG.WIDTH, CONFIG.HEIGHT));
+    gradient.addColorStop(0, 'rgba(10, 14, 28, 0.3)');
+    gradient.addColorStop(1, 'rgba(6, 9, 18, 0.6)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+
+    const { nodes, edges } = getFilteredNodesEdges();
+
+    camera.update();
+
+    lastProjMap = {};
+    const projMap = lastProjMap;
+    const maxEigen = cachedMaxEigen;
+    for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const proj = camera.projectPoint(n);
+        const normEigen = (eigenCent[n.id] || 0) / maxEigen;
+        let size = (4 + normEigen * 10) * proj.scale;
+        if (articulationPoints.has(n.id)) size *= 1.2;
+        if (n.id === 'dexmxus') size *= 2.0;  // Sun is 2x normal
+        projMap[n.id] = { node: n, proj, size, normEigen };
+    }
+
+    // Draw orbital rings
+    if (showRings) {
+        const uniqueRadii = new Set();
+        nodes.forEach(n => {
+            if (n.id !== 'dexmxus' && n.orbitRadius > 5) {
+                uniqueRadii.add(n.orbitRadius);
+            }
+        });
+        
+        uniqueRadii.forEach(radius => {
+            const proj = camera.projectPoint({
+                x: CONFIG.CENTER_X + radius,
+                y: CONFIG.CENTER_Y,
+                z: 0,
+                orbitZ: 0
+            });
+            const proj2 = camera.projectPoint({
+                x: CONFIG.CENTER_X,
+                y: CONFIG.CENTER_Y + radius,
+                z: 0,
+                orbitZ: 0
+            });
+            
+            const radiusScreen = Math.sqrt(
+                (proj.x - CONFIG.CENTER_X) ** 2 + (proj.y - CONFIG.CENTER_Y) ** 2
+            );
+            
+            // Find which community has this radius
+            let ringColor = '#a78bfa';
+            for (let comm of Object.keys(communities)) {
+                const nodes_in_comm = communities[comm];
+                for (let nid of nodes_in_comm) {
+                    const n = graph.getNode(nid);
+                    if (n && Math.abs(n.orbitRadius - radius) < 1) {
+                        ringColor = communityColors[comm];
+                        break;
+                    }
+                }
+            }
+            
+            ctx.strokeStyle = `rgba(${parseInt(ringColor.substring(1,3), 16)}, ${parseInt(ringColor.substring(3,5), 16)}, ${parseInt(ringColor.substring(5,7), 16)}, 0.15)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(CONFIG.CENTER_X, CONFIG.CENTER_Y, radiusScreen, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+    }
+
+    // Draw edges with Bézier curves
+    if (showEdges) {
+        const edgesByType = {};
+        for (let i = 0; i < edges.length; i++) {
+            const e = edges[i];
+            if (!edgesByType[e.type]) edgesByType[e.type] = [];
+            edgesByType[e.type].push(e);
+        }
+        
+        const typeKeys = Object.keys(edgesByType);
+        for (let t = 0; t < typeKeys.length; t++) {
+            const typeName = typeKeys[t];
+            const et = EDGE_TYPES[typeName] || EDGE_TYPES.correlation;
+            ctx.lineWidth = et.width * camera.zoom;
+            if (et.dash) { ctx.setLineDash([4, 4]); } else { ctx.setLineDash([]); }
+            
+            const batch = edgesByType[typeName];
+            for (let i = 0; i < batch.length; i++) {
+                const e = batch[i];
+                const pm1 = projMap[e.source];
+                const pm2 = projMap[e.target];
+                if (!pm1 || !pm2) continue;
+
+                // Nucleus view: dim edges based on endpoint hop distances
+                const nucAlpha = nucleusNode
+                    ? Math.max(getNucleusAlpha(e.source), getNucleusAlpha(e.target)) * 0.9
+                    : 1;
+                if (nucAlpha < 0.03) continue;  // skip invisible edges
+
+                const alpha = (et.alpha + e.weight * 0.08) * nucAlpha;
+                ctx.strokeStyle = `rgba(${et.rgb}, ${alpha})`;
+                ctx.beginPath();
+                
+                // Quadratic Bézier curve with control point pulled toward center
+                const midX = (pm1.proj.x + pm2.proj.x) / 2;
+                const midY = (pm1.proj.y + pm2.proj.y) / 2;
+                const pullFactor = 0.2 + e.weight * 0.15;
+                const cpX = midX + (CONFIG.CENTER_X - midX) * pullFactor;
+                const cpY = midY + (CONFIG.CENTER_Y - midY) * pullFactor;
+                
+                ctx.moveTo(pm1.proj.x, pm1.proj.y);
+                ctx.quadraticCurveTo(cpX, cpY, pm2.proj.x, pm2.proj.y);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+        }
+    }
+
+    // Sort projections by depth
+    const projections = Object.values(projMap);
+    projections.sort((a, b) => a.proj.z - b.proj.z);
+
+    // Render nodes
+    projections.forEach(({ node: n, proj, size, normEigen }) => {
+        const communityDim = selectedCommunity !== null && n.community !== selectedCommunity;
+        const nucAlpha = getNucleusAlpha(n.id);
+        const dimmed = communityDim || (nucleusNode && nucAlpha < 0.5);
+        const baseAlpha = communityDim ? 0.12 : nucAlpha;
+        ctx.globalAlpha = baseAlpha;
+
+        let fillColor = n.color || '#a78bfa';
+        if (n.type === 'bull_case') fillColor = '#4ade80';
+
+        // Node circle
+        ctx.fillStyle = fillColor;
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sun glow (pulsing)
+        if (n.id === 'dexmxus') {
+            const time = Date.now() * 0.002;
+            const glowRadius = 60 + Math.sin(time) * 10;
+            const glowGrad = ctx.createRadialGradient(proj.x, proj.y, size, proj.x, proj.y, glowRadius);
+            glowGrad.addColorStop(0, 'rgba(251, 191, 36, 0.4)');
+            glowGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+            ctx.fillStyle = glowGrad;
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, glowRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Bull case dashed border
+        if (n.type === 'bull_case') {
+            ctx.strokeStyle = '#4ade80';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Gold glow for Denaris nodes
+        if (denarInsights[n.id]) {
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = dimmed ? 0.06 : 0.5 * nucAlpha;
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, size + 3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Hover highlight
+        if (n === hoveredNode) {
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, size + 2, 0, Math.PI * 2);
+            ctx.stroke();
+
+            edges.forEach(e => {
+                if (e.source === n.id || e.target === n.id) {
+                    const other = graph.getNode(e.source === n.id ? e.target : e.source);
+                    if (other) {
+                        const p2 = camera.projectPoint(other);
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.globalAlpha = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(proj.x, proj.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            });
+        }
+
+        ctx.globalAlpha = 1;
+    });
+
+    // Render labels
+    if (showLabels) {
+        const labelBoxes = [];
+        const labelQueue = [...projections].sort((a, b) => b.normEigen - a.normEigen);
+        
+        const zoomTier = camera.zoom < 0.7 ? 0 : camera.zoom < 1.4 ? 1 : 2;
+        const maxLabelsForTier = [15, 35, 80][zoomTier];
+        
+        const truncateText = (text, maxChars) => {
+            if (text.length <= maxChars) return text;
+            return text.substring(0, maxChars - 1) + '…';
+        };
+        
+        const getLabelFontSize = (normEigen, projScale) => {
+            const base = zoomTier === 0 ? 9 : zoomTier === 1 ? 10 : 11;
+            const eigenBoost = normEigen * 3;
+            return Math.max(8, (base + eigenBoost) * Math.min(projScale, 1.6));
+        };
+        
+        const canPlaceLabel = (x, y, w, h) => {
+            for (const box of labelBoxes) {
+                if (x < box.x + box.w && x + w > box.x && y < box.y + box.h && y + h > box.y) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        
+        const labelsToShow = new Map();
+        let labelCount = 0;
+        
+        labelQueue.forEach(({ node, proj, size, normEigen }) => {
+            if (labelCount >= maxLabelsForTier && node !== hoveredNode) return;
+            
+            const lines = node.name.split('\n');
+            const fontSize = getLabelFontSize(normEigen, proj.scale);
+            const subFontSize = fontSize * 0.82;
+            
+            const maxChars = zoomTier === 0 ? 22 : zoomTier === 1 ? 38 : 60;
+            const line1 = truncateText(lines[0], maxChars);
+            
+            ctx.font = `500 ${fontSize}px Inter, sans-serif`;
+            const line1Width = ctx.measureText(line1).width;
+            
+            let totalHeight = fontSize + 6;
+            let maxWidth = line1Width;
+            
+            let line2 = null;
+            if (lines[1] && (zoomTier >= 2 || node === hoveredNode)) {
+                line2 = truncateText(lines[1], maxChars + 10);
+                ctx.font = `300 ${subFontSize}px Inter, sans-serif`;
+                const line2Width = ctx.measureText(line2).width;
+                maxWidth = Math.max(maxWidth, line2Width);
+                totalHeight += subFontSize + 3;
+            }
+            
+            const padX = 6, padY = 3;
+            const labelW = maxWidth + padX * 2;
+            const labelH = totalHeight + padY * 2;
+            const lx = proj.x - labelW / 2;
+            const ly = proj.y + size + 4;
+            
+            if (node === hoveredNode || canPlaceLabel(lx, ly, labelW, labelH)) {
+                labelsToShow.set(node.id, { line1, line2, fontSize, subFontSize, labelW, labelH });
+                labelBoxes.push({ x: lx, y: ly, w: labelW, h: labelH });
+                labelCount++;
+            }
+        });
+
+        projections.forEach(({ node: n, proj, size, normEigen }) => {
+            const labelInfo = labelsToShow.get(n.id);
+            if (!labelInfo) return;
+
+            const communityDim = selectedCommunity !== null && n.community !== selectedCommunity;
+            const nucA = getNucleusAlpha(n.id);
+            const dimmed = communityDim || (nucleusNode && nucA < 0.5);
+            const { line1, line2, fontSize, subFontSize, labelW, labelH } = labelInfo;
+
+            // Hide labels for very distant nucleus nodes
+            if (nucleusNode && nucA < 0.1) return;
+
+            const labelX = proj.x;
+            const labelY = proj.y + size + 4;
+
+            const pillX = labelX - labelW / 2;
+            const pillY = labelY;
+            const pillR = 4;
+
+            ctx.globalAlpha = (dimmed ? 0.06 : (n === hoveredNode ? 0.92 : 0.72)) * nucA;
+            ctx.fillStyle = 'rgba(6, 9, 18, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(pillX, pillY, labelW, labelH, pillR);
+            ctx.fill();
+
+            if (n === hoveredNode) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.roundRect(pillX, pillY, labelW, labelH, pillR);
+                ctx.stroke();
+            }
+
+            ctx.globalAlpha = (dimmed ? 0.1 : (n === hoveredNode ? 1.0 : 0.9)) * nucA;
+            ctx.fillStyle = '#e0e4f0';
+            ctx.font = `500 ${fontSize}px Inter, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(line1, labelX, pillY + 4);
+
+            if (line2) {
+                ctx.globalAlpha = (dimmed ? 0.06 : (n === hoveredNode ? 0.7 : 0.45)) * nucA;
+                ctx.fillStyle = '#a0a8c0';
+                ctx.font = `300 ${subFontSize}px Inter, sans-serif`;
+                ctx.fillText(line2, labelX, pillY + 4 + fontSize + 3);
+            }
+        });
+    }
+
+    ctx.globalAlpha = 1;
+    
+    // Draw concentric hop-distance rings around nucleus node
+    if (nucleusNode && projMap[nucleusNode.id]) {
+        const nucProj = projMap[nucleusNode.id].proj;
+        const ringRadii = [60, 130, 210, 300, 400];  // px per hop
+        const ringAlphas = [0.25, 0.18, 0.12, 0.07, 0.04];
+        for (let hop = 0; hop < ringRadii.length; hop++) {
+            const r = ringRadii[hop] * camera.zoom;
+            ctx.strokeStyle = `rgba(167, 139, 250, ${ringAlphas[hop]})`;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 6]);
+            ctx.beginPath();
+            ctx.arc(nucProj.x, nucProj.y, r, 0, Math.PI * 2);
+            ctx.stroke();
+            // Hop label
+            ctx.setLineDash([]);
+            ctx.globalAlpha = ringAlphas[hop] * 2.5;
+            ctx.fillStyle = '#a78bfa';
+            ctx.font = '9px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${hop + 1} hop${hop > 0 ? 's' : ''}`, nucProj.x + r + 4, nucProj.y);
+        }
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+    }
+
+    // Update HUD display
+    const modeLabel = camera.mode === 'top-down' ? 'Top-Down' : camera.mode === 'tilted' ? 'Tilted' : camera.mode === 'auto-orbit' ? 'Auto Orbit' : 'Free-Look';
+    const nucleusLabel = nucleusNode ? ` | Nucleus: ${nucleusNode.name.split('\\n')[0]}` : '';
+    document.getElementById('hud-display').textContent = `Camera: ${modeLabel} | Zoom: ${camera.zoom.toFixed(1)}x${nucleusLabel}`;
+    updateProjectionPanel();
+}
+
+// ============================================================================
+// EXCHANGE RATE PROJECTION ENGINE
+// Network-weighted signal aggregation model
+// ============================================================================
+
+const PROJECTION = {
+    currentRate: 17.17,       // Current USD/MXN spot (Feb 16, 2026)
+    previousRate: 18.07,      // Previous month avg (Dec 2025)
+
+    // Historical monthly averages for backtesting (USD/MXN)
+    // Source: X-Rates, Banxico, Investing.com
+    historicalRates: [
+        { month: 'Jan 2025', actual: 20.59, label: 'Jan \'25' },
+        { month: 'Feb 2025', actual: 20.49, label: 'Feb \'25' },
+        { month: 'Mar 2025', actual: 20.24, label: 'Mar \'25' },
+        { month: 'Apr 2025', actual: 20.04, label: 'Apr \'25' },
+        { month: 'May 2025', actual: 19.44, label: 'May \'25' },
+        { month: 'Jun 2025', actual: 19.06, label: 'Jun \'25' },
+        { month: 'Jul 2025', actual: 18.67, label: 'Jul \'25' },
+        { month: 'Aug 2025', actual: 18.70, label: 'Aug \'25' },
+        { month: 'Sep 2025', actual: 18.50, label: 'Sep \'25' },
+        { month: 'Oct 2025', actual: 18.43, label: 'Oct \'25' },
+        { month: 'Nov 2025', actual: 18.42, label: 'Nov \'25' },
+        { month: 'Dec 2025', actual: 18.07, label: 'Dec \'25' },
+        { month: 'Jan 2026', actual: 17.54, label: 'Jan \'26' },
+        { month: 'Feb 2026', actual: 17.17, label: 'Feb \'26' }
+    ],
+
+    // Node directional classification: +1 = depreciation pressure, -1 = appreciation, 0 = neutral
+    directions: {
+        // Carry & financialization cluster → depreciation risk (unwinding = peso weakness)
+        'carry_spread': 0.6,        // High carry = temporary strength, structural fragility
+        'carry_derivatives': 1.0,   // Pure financialization = depreciation risk
+        'cftc_mxn': 0.7,            // Speculative positioning = fragile strength
+        'cftc_cme': 0.5,
+        'cftc_cot': 0.5,
+        'bush_fx': 0.8,             // CIP deviations = stress signal
+        'private_fx_debt': 1.0,     // Corporate FX debt = depreciation accelerant
+        'hedge_ratio_intensity': 0.9, // Low hedge = depreciation amplifier
+
+        // Volatility cluster → depreciation signal
+        'mxn_implied_vol': 0.8,
+        'mxn_risk_reversal': 0.9,   // Positive skew = depreciation fear
+        'xccy_basis': 0.7,          // Wide basis = funding stress
+        'dollar_liquidity': -0.5,   // Abundant liquidity = temporary appreciation
+
+        // Structural weakness → depreciation
+        'trade_balance': 0.7,
+        'bop_current': 0.6,
+        'bis_eer': 0.8,             // Overvaluation = depreciation pressure
+        'reer_mexico': 0.9,
+        'debt_gdp': 0.6,
+        'fiscal_deficit_dyn': 0.8,
+        'oil_fiscal': 0.4,
+        'informality_rate': 0.5,
+        'two_mexicos': 0.4,
+
+        // Competitiveness decay → depreciation
+        'export_share_asia': 0.7,
+        'import_penetration': 0.6,
+        'mfg_export_elast': 0.7,
+        'nearshore_caputil': -0.3,  // Utilization can be positive
+        'domestic_credit': 0.5,     // Credit expansion = overheating
+
+        // Macro/external shocks → depreciation
+        'vixcls': 0.7,
+        'credit_spread_em': 0.8,
+        'gold': 0.3,
+        'wti_oil': -0.2,           // Higher oil = slight peso support
+
+        // Bull case / appreciation drivers
+        'bull_nearshoring': -0.8,
+        'bull_remit': -0.6,
+        'bull_fiscal': -0.5,
+        'bull_reserves': -0.9,      // Strong reserves = appreciation support
+        'fdi_gap': 0.6,             // FDI shortfall = depreciation
+
+        // Central bank → depends on stance
+        'banxico_rate': -0.4,       // High rates = appreciation support
+        'banxico_decision': -0.3,
+        'banxico_interv': -0.7,     // Intervention = defending peso
+        'fed_funds': 0.5,           // Higher US rates = peso pressure
+        'real_rate_diff': -0.8,     // Positive real rate diff = appreciation
+
+        // Portfolio flows
+        'fdijb': -0.3,             // Inflows = appreciation
+        'afore': -0.2,
+        'jpy_carry': 0.6,          // JPY parallel = contagion risk
+        'tequila_crisis': 0.3,     // Historical parallel (structural)
+
+        // Political/institutional
+        'pmi_mexico': -0.4,
+        'real_wage': -0.2,
+        'houston_bt': 0.4,         // Capital flight signal
+        'multi_currency_fx': 0.3,
+        'remittances': -0.5,
+        'm2_money': 0.3,
+        'inpc_diario': 0.4,        // Inflation = peso erosion
+
+        // Default: neutral
+        'dexmxus': 0                // The target itself
+    }
+};
+
+function computeProjection() {
+    const nodes = graph.getNodes().filter(n => !removedNodes.has(n.id));
+    const edges = graph.getEdges().filter(e =>
+        !removedNodes.has(e.source) && !removedNodes.has(e.target) && activeEdgeTypes.has(e.type)
+    );
+
+    const maxEigen = Math.max(...Object.values(eigenCent), 0.001);
+
+    // Find all edges connected to dexmxus
+    const dexEdges = edges.filter(e => e.source === 'dexmxus' || e.target === 'dexmxus');
+
+    let appreciationSignal = 0;
+    let depreciationSignal = 0;
+    let totalWeight = 0;
+    let contributors = [];
+
+    dexEdges.forEach(e => {
+        const otherId = e.source === 'dexmxus' ? e.target : e.source;
+        const direction = PROJECTION.directions[otherId] || 0;
+        if (direction === 0) return;
+
+        const ecNorm = (eigenCent[otherId] || 0) / maxEigen;
+        const signal = direction * ecNorm * e.weight;
+
+        if (signal > 0) depreciationSignal += signal;
+        else appreciationSignal += Math.abs(signal);
+        totalWeight += ecNorm * e.weight;
+
+        contributors.push({ id: otherId, signal, ecNorm, weight: e.weight, direction });
+    });
+
+    // Also include 2nd-order effects: nodes connected to dexmxus neighbors
+    const dexNeighborIds = new Set(dexEdges.map(e => e.source === 'dexmxus' ? e.target : e.source));
+
+    edges.forEach(e => {
+        const isSourceNeighbor = dexNeighborIds.has(e.source);
+        const isTargetNeighbor = dexNeighborIds.has(e.target);
+        if (!isSourceNeighbor && !isTargetNeighbor) return;
+        if (e.source === 'dexmxus' || e.target === 'dexmxus') return;
+
+        // 2nd-order node is the one NOT directly connected to dexmxus
+        const secondOrderId = isSourceNeighbor ? e.target : e.source;
+        if (dexNeighborIds.has(secondOrderId)) return; // both are 1st order, skip
+
+        const direction = PROJECTION.directions[secondOrderId] || 0;
+        if (direction === 0) return;
+
+        const ecNorm = (eigenCent[secondOrderId] || 0) / maxEigen;
+        const signal = direction * ecNorm * e.weight * 0.35; // 35% weight for 2nd order
+
+        if (signal > 0) depreciationSignal += signal;
+        else appreciationSignal += Math.abs(signal);
+        totalWeight += ecNorm * e.weight * 0.35;
+    });
+
+    // Net signal: positive = depreciation pressure, negative = appreciation
+    const netSignal = totalWeight > 0 ? (depreciationSignal - appreciationSignal) / totalWeight : 0;
+
+    // Map signal to rate projection
+    // Signal range roughly -1 to +1; map to rate adjustment
+    const maxAdjustment = 4.5;  // Max +/- pesos from current
+    const adjustment = netSignal * maxAdjustment;
+    const projectedRate = PROJECTION.currentRate + adjustment;
+
+    // Confidence based on number of active contributors and eigenvector coverage
+    const activePct = nodes.length / 96;  // vs full network
+    const confidence = Math.min(0.95, 0.4 + activePct * 0.3 + (1 - Math.abs(netSignal)) * 0.25);
+
+    // Confidence interval (wider when fewer nodes active)
+    const ciWidth = (1 - confidence) * 6 + 0.8;
+
+    // Sort top contributors
+    contributors.sort((a, b) => Math.abs(b.signal) - Math.abs(a.signal));
+
+    return {
+        currentRate: PROJECTION.currentRate,
+        previousRate: PROJECTION.previousRate,
+        projectedRate: Math.max(12, Math.min(32, projectedRate)),
+        netSignal,
+        depreciationSignal,
+        appreciationSignal,
+        confidence,
+        ciLow: Math.max(12, projectedRate - ciWidth),
+        ciHigh: Math.min(32, projectedRate + ciWidth),
+        topDepreciation: contributors.filter(c => c.signal > 0).slice(0, 5),
+        topAppreciation: contributors.filter(c => c.signal < 0).slice(0, 5),
+        adjustment,
+        stressActive: removedNodes.size > 0
+    };
+}
+
+// ============================================================================
+// HISTORICAL BACKTESTING ENGINE
+// Simulates what the model would have projected at each historical month
+// using actual rates as inputs, then scores directional + magnitude accuracy
+// ============================================================================
+
+function runBacktest() {
+    const rates = PROJECTION.historicalRates;
+    if (rates.length < 3) return { scores: [], avgAccuracy: 0, dirAccuracy: 0, maePercent: 0 };
+
+    const results = [];
+    const savedCurrent = PROJECTION.currentRate;
+    const savedPrevious = PROJECTION.previousRate;
+
+    // For each month from index 2 onward, use index-2 as previous, index-1 as current
+    // Then the model projects forward, and we compare to actual at index
+    for (let i = 2; i < rates.length; i++) {
+        PROJECTION.previousRate = rates[i - 2].actual;
+        PROJECTION.currentRate = rates[i - 1].actual;
+
+        const proj = computeProjection();
+        const projected = proj.projectedRate;
+        const actual = rates[i].actual;
+        const inputRate = rates[i - 1].actual;
+
+        // Directional accuracy: did model predict the right direction?
+        const actualDirection = actual - inputRate;  // neg = appreciation, pos = depreciation
+        const projDirection = projected - inputRate;
+        const directionCorrect = (actualDirection > 0 && projDirection > 0) ||
+                                  (actualDirection < 0 && projDirection < 0) ||
+                                  (Math.abs(actualDirection) < 0.05);  // essentially flat
+
+        // Magnitude error
+        const absError = Math.abs(projected - actual);
+        const pctError = (absError / actual) * 100;
+
+        // Accuracy score: 100 - penalty for error + bonus for direction
+        // Base: 100 - (pct error * 10), capped [0, 100], boosted if direction correct
+        let accuracy = Math.max(0, Math.min(100, 100 - pctError * 8));
+        if (directionCorrect) accuracy = Math.min(100, accuracy + 10);
+
+        results.push({
+            month: rates[i].label,
+            inputRate: inputRate,
+            projected: projected,
+            actual: actual,
+            error: absError,
+            pctError: pctError,
+            directionCorrect: directionCorrect,
+            accuracy: accuracy,
+            projDirection: projDirection > 0 ? 'depr' : 'appr',
+            actualDirection: actualDirection > 0 ? 'depr' : 'appr'
+        });
+    }
+
+    // Restore current state
+    PROJECTION.currentRate = savedCurrent;
+    PROJECTION.previousRate = savedPrevious;
+
+    // Aggregate metrics
+    const dirHits = results.filter(r => r.directionCorrect).length;
+    const avgAccuracy = results.reduce((s, r) => s + r.accuracy, 0) / results.length;
+    const maePercent = results.reduce((s, r) => s + r.pctError, 0) / results.length;
+    const maxError = Math.max(...results.map(r => r.pctError));
+    const minError = Math.min(...results.map(r => r.pctError));
+
+    // Trend-following score: how well does the model capture the appreciation trend?
+    let trendScore = 0;
+    results.forEach(r => {
+        // The actual trend was strong appreciation (20.59 → 17.17)
+        // Model should consistently signal appreciation or at least the right direction
+        if (r.directionCorrect) trendScore += 1;
+        if (r.pctError < 3) trendScore += 0.5;
+    });
+    trendScore = Math.min(100, (trendScore / (results.length * 1.5)) * 100);
+
+    return {
+        scores: results,
+        avgAccuracy: avgAccuracy,
+        dirAccuracy: (dirHits / results.length) * 100,
+        maePercent: maePercent,
+        maxError: maxError,
+        minError: minError,
+        trendScore: trendScore,
+        totalMonths: results.length,
+        dirHits: dirHits
+    };
+}
+
+function updateProjectionPanel() {
+    const panel = document.getElementById('projection-panel');
+    if (!panel) return;
+
+    const p = computeProjection();
+
+    const signalColor = p.netSignal > 0.15 ? '#ef4444' : p.netSignal < -0.15 ? '#4ade80' : '#fbbf24';
+    const directionLabel = p.netSignal > 0.15 ? 'DEPRECIATION' : p.netSignal < -0.15 ? 'APPRECIATION' : 'NEUTRAL';
+    const arrow = p.netSignal > 0.15 ? '▼' : p.netSignal < -0.15 ? '▲' : '◆';
+
+    const rateChange = p.projectedRate - p.currentRate;
+    const rateChangePct = ((rateChange / p.currentRate) * 100).toFixed(1);
+    const prevChange = ((p.currentRate - p.previousRate) / p.previousRate * 100).toFixed(1);
+
+    const topDepHTML = p.topDepreciation.map(c => {
+        const node = graph.getNode(c.id);
+        const name = node ? node.name.split('\\n')[0] : c.id;
+        return `<span style="color:#ef4444;">${name}</span> (${(c.signal).toFixed(2)})`;
+    }).join('<br>');
+
+    const topAppHTML = p.topAppreciation.map(c => {
+        const node = graph.getNode(c.id);
+        const name = node ? node.name.split('\\n')[0] : c.id;
+        return `<span style="color:#4ade80;">${name}</span> (${(Math.abs(c.signal)).toFixed(2)})`;
+    }).join('<br>');
+
+    // Run backtest
+    const bt = runBacktest();
+
+    // Build mini sparkline of historical accuracy
+    const sparkHTML = bt.scores.map(s => {
+        const h = Math.max(2, s.accuracy / 100 * 24);
+        const color = s.directionCorrect ? (s.accuracy > 70 ? '#4ade80' : '#fbbf24') : '#ef4444';
+        return `<div title="${s.month}: ${s.accuracy.toFixed(0)}% acc, ${s.directionCorrect ? '✓' : '✗'} dir" style="width:${100/bt.scores.length}%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:28px;">
+            <div style="width:80%; height:${h}px; background:${color}; border-radius:1px;"></div>
+            <div style="font-size:6px; color:rgba(200,206,224,0.3); margin-top:1px;">${s.month.replace("'","")}</div>
+        </div>`;
+    }).join('');
+
+    // Build monthly detail rows
+    const monthDetailHTML = bt.scores.map(s => {
+        const dirIcon = s.directionCorrect ? '<span style="color:#4ade80;">✓</span>' : '<span style="color:#ef4444;">✗</span>';
+        const accColor = s.accuracy >= 75 ? '#4ade80' : s.accuracy >= 50 ? '#fbbf24' : '#ef4444';
+        return `<div style="display:grid; grid-template-columns:45px 42px 42px 42px 24px 32px; gap:2px; font-size:8px; color:rgba(200,206,224,0.5); line-height:1.8;">
+            <span>${s.month}</span>
+            <span>${s.inputRate.toFixed(2)}</span>
+            <span style="color:#a78bfa;">${s.projected.toFixed(2)}</span>
+            <span>${s.actual.toFixed(2)}</span>
+            <span>${dirIcon}</span>
+            <span style="color:${accColor}; text-align:right;">${s.accuracy.toFixed(0)}%</span>
+        </div>`;
+    }).join('');
+
+    // Accuracy grade
+    const grade = bt.avgAccuracy >= 80 ? 'A' : bt.avgAccuracy >= 70 ? 'B+' : bt.avgAccuracy >= 60 ? 'B' : bt.avgAccuracy >= 50 ? 'C+' : bt.avgAccuracy >= 40 ? 'C' : 'D';
+    const gradeColor = bt.avgAccuracy >= 70 ? '#4ade80' : bt.avgAccuracy >= 50 ? '#fbbf24' : '#ef4444';
+
+    panel.innerHTML = `
+        <div style="font-size:11px; font-weight:700; color:#a78bfa; margin-bottom:8px; letter-spacing:1px;">
+            USD/MXN PROJECTION ENGINE
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+            <div>
+                <div style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase;">Previous (Dec \'25)</div>
+                <div style="font-size:14px; color:#c8cee0;">${p.previousRate.toFixed(2)}</div>
+            </div>
+            <div>
+                <div style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase;">Current Spot</div>
+                <div style="font-size:14px; color:#e0e4f0; font-weight:600;">${p.currentRate.toFixed(2)}</div>
+                <div style="font-size:9px; color:${parseFloat(prevChange) > 0 ? '#ef4444' : '#4ade80'};">${prevChange > 0 ? '+' : ''}${prevChange}% from prev</div>
+            </div>
+        </div>
+        <div style="background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.2); border-radius:6px; padding:8px; margin-bottom:8px;">
+            <div style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase;">Network Model Projection</div>
+            <div style="font-size:22px; font-weight:700; color:${signalColor};">${p.projectedRate.toFixed(2)} <span style="font-size:12px;">${arrow} ${directionLabel}</span></div>
+            <div style="font-size:9px; color:rgba(200,206,224,0.5);">
+                ${rateChange > 0 ? '+' : ''}${rateChange.toFixed(2)} (${rateChangePct > 0 ? '+' : ''}${rateChangePct}%) | CI: ${p.ciLow.toFixed(2)} – ${p.ciHigh.toFixed(2)}
+            </div>
+            <div style="font-size:9px; color:rgba(200,206,224,0.35); margin-top:2px;">
+                Model Confidence: ${(p.confidence * 100).toFixed(0)}%${p.stressActive ? ' <span style="color:#ef4444;">(STRESS ACTIVE)</span>' : ''}
+            </div>
+        </div>
+
+        <div style="background:rgba(74,222,128,0.04); border:1px solid rgba(74,222,128,0.12); border-radius:6px; padding:8px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase;">Model Accuracy · ${bt.totalMonths}-Month Backtest</div>
+                <div style="font-size:16px; font-weight:700; color:${gradeColor};">${grade}</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-bottom:8px;">
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:600; color:${gradeColor};">${bt.avgAccuracy.toFixed(0)}%</div>
+                    <div style="font-size:7px; color:rgba(200,206,224,0.35);">AVG ACCURACY</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:600; color:${bt.dirAccuracy >= 70 ? '#4ade80' : '#fbbf24'};">${bt.dirAccuracy.toFixed(0)}%</div>
+                    <div style="font-size:7px; color:rgba(200,206,224,0.35);">DIR. CORRECT</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:15px; font-weight:600; color:${bt.maePercent < 3 ? '#4ade80' : bt.maePercent < 6 ? '#fbbf24' : '#ef4444'};">${bt.maePercent.toFixed(1)}%</div>
+                    <div style="font-size:7px; color:rgba(200,206,224,0.35);">MAE %</div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:1px; margin-bottom:4px;">${sparkHTML}</div>
+            <div style="font-size:7px; color:rgba(200,206,224,0.25); text-align:center;">Monthly accuracy scores (green=correct direction, red=missed)</div>
+        </div>
+
+        <details style="margin-bottom:8px;">
+            <summary style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase; cursor:pointer; user-select:none;">Monthly Backtest Detail ▾</summary>
+            <div style="margin-top:4px; padding:4px; background:rgba(0,0,0,0.2); border-radius:4px;">
+                <div style="display:grid; grid-template-columns:45px 42px 42px 42px 24px 32px; gap:2px; font-size:7px; color:rgba(200,206,224,0.25); line-height:2; border-bottom:1px solid rgba(255,255,255,0.05); margin-bottom:2px;">
+                    <span>Month</span><span>Input</span><span>Model</span><span>Actual</span><span>Dir</span><span style="text-align:right;">Acc</span>
+                </div>
+                ${monthDetailHTML}
+                <div style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.05); font-size:7px; color:rgba(200,206,224,0.3);">
+                    Error range: ${bt.minError.toFixed(2)} – ${bt.maxError.toFixed(2)} MXN | Trend score: ${bt.trendScore.toFixed(0)}%
+                </div>
+            </div>
+        </details>
+
+        <div style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase; margin-bottom:3px;">Net Signal Decomposition</div>
+        <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; margin-bottom:6px; background:rgba(255,255,255,0.05);">
+            <div style="width:${(p.depreciationSignal / (p.depreciationSignal + p.appreciationSignal) * 100).toFixed(0)}%; background:#ef4444; border-radius:4px 0 0 4px;"></div>
+            <div style="width:${(p.appreciationSignal / (p.depreciationSignal + p.appreciationSignal) * 100).toFixed(0)}%; background:#4ade80; border-radius:0 4px 4px 0;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:8px; color:rgba(200,206,224,0.4); margin-bottom:8px;">
+            <span style="color:#ef4444;">▼ Depreciation ${(p.depreciationSignal / (p.depreciationSignal + p.appreciationSignal) * 100).toFixed(0)}%</span>
+            <span style="color:#4ade80;">▲ Appreciation ${(p.appreciationSignal / (p.depreciationSignal + p.appreciationSignal) * 100).toFixed(0)}%</span>
+        </div>
+        <div style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase; margin-bottom:3px;">Top Depreciation Drivers</div>
+        <div style="font-size:9px; line-height:1.6; margin-bottom:6px;">${topDepHTML || '<span style="color:rgba(200,206,224,0.3);">None active</span>'}</div>
+        <div style="font-size:8px; color:rgba(200,206,224,0.4); text-transform:uppercase; margin-bottom:3px;">Top Appreciation Drivers</div>
+        <div style="font-size:9px; line-height:1.6; margin-bottom:6px;">${topAppHTML || '<span style="color:rgba(200,206,224,0.3);">None active</span>'}</div>
+        <div style="font-size:7px; color:rgba(200,206,224,0.2); border-top:1px solid rgba(255,255,255,0.05); padding-top:4px; margin-top:4px;">
+            Denaris Capital Network Model™ · Eigenvector-weighted · ${graph.getNodes().filter(n => !removedNodes.has(n.id)).length} active nodes · Backtest: Jan \'25 – Feb \'26
+        </div>
+    `;
+}
+
+// Allow rate updates via HUD
+function setProjectionRates(current, previous) {
+    if (current !== undefined) PROJECTION.currentRate = current;
+    if (previous !== undefined) PROJECTION.previousRate = previous;
+    updateProjectionPanel();
+}
+
+// ============================================================================
+// ANIMATION LOOP
+// ============================================================================
+
+let lastRenderTime = 0;
+function animate() {
+    if (!physics.frozen) {
+        physics.step();
+        render();
+    } else {
+        const now = performance.now();
+        if (now - lastRenderTime > 100 || hoveredNode) {
+            render();
+            lastRenderTime = now;
+        }
+    }
+    requestAnimationFrame(animate);
+}
+
+// ============================================================================
+// TOOLTIPS & INTERACTIONS
+// ============================================================================
+
+function showTooltip(node, x, y) {
+    const tooltip = document.getElementById('tooltip');
+    const bcValues = Object.values(betweenCent);
+    const maxBc = Math.max(...bcValues, 0.01);
+    const maxEc = Math.max(...Object.values(eigenCent), 0.01);
+    const stats = {
+        eigenvector: ((eigenCent[node.id] || 0) / maxEc * 100).toFixed(1),
+        betweenness: ((betweenCent[node.id] || 0) / maxBc * 100).toFixed(1),
+        kcore: kcore[node.id] || 0,
+        articulation: articulationPoints.has(node.id) ? 'Yes' : 'No'
+    };
+
+    const allConnected = graph.getEdges()
+        .filter(e => e.source === node.id || e.target === node.id)
+        .map(e => e.source === node.id ? e.target : e.source);
+    const connectedNodes = allConnected.slice(0, 12);
+    const moreCount = allConnected.length - connectedNodes.length;
+
+    const bullCounter = node.bull_counter ? `
+        <div class="tooltip-section">
+            <div class="tooltip-label" style="color: #ef4444;">Counter-Thesis:</div>
+            <div style="color: rgba(239,68,68,0.7);">${node.bull_counter}</div>
+        </div>` : '';
+
+    const denarNote = denarInsights[node.id] ? `
+        <div class="tooltip-section">
+            <div class="tooltip-label" style="color: #d4af37;">Denaris Insight Available — see panel ↗</div>
+        </div>` : '';
+
+    const connectedList = connectedNodes.map(id => {
+        const n = graph.getNode(id);
+        return n ? n.name.split('\n')[0] : id;
+    }).join(', ');
+
+    tooltip.innerHTML = `
+        <strong>${node.name}</strong>
+        <div class="tooltip-section">
+            <div class="tooltip-label">Type: ${NODE_TYPES[node.type] || node.type}</div>
+            <div class="tooltip-label">Why this matters:</div>
+            <div>${node.purpose}</div>
+        </div>
+        ${bullCounter}
+        ${denarNote}
+        <div class="tooltip-section">
+            <div class="tooltip-label">Section Role:</div>
+            <div>${node.sections.join(', ')}</div>
+        </div>
+        <div class="tooltip-section">
+            <div class="tooltip-label">Metrics:</div>
+            <div>Influence: ${stats.eigenvector}% | Betweenness: ${stats.betweenness}% | K-core: ${stats.kcore}${nucleusNode ? ` | Hop: ${nucleusDistMap[node.id] !== undefined ? nucleusDistMap[node.id] : '∞'}` : ''}</div>
+        </div>
+        <div class="tooltip-section">
+            <div class="tooltip-label">Connected (${allConnected.length}):</div>
+            <div>${connectedList}${moreCount > 0 ? ` <span style="color:rgba(200,206,224,0.4)">+${moreCount} more</span>` : ''}</div>
+        </div>
+    `;
+
+    tooltip.style.display = 'block';
+    const tw = tooltip.offsetWidth || 300;
+    const th = tooltip.offsetHeight || 200;
+    let tx = x + 10;
+    let ty = y + 10;
+    if (tx + tw > window.innerWidth - 10) tx = x - tw - 10;
+    if (ty + th > window.innerHeight - 10) ty = y - th - 10;
+    if (tx < 5) tx = 5;
+    if (ty < 5) ty = 5;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+}
+
+function showDenaris(node) {
+    const panel = document.getElementById('denaris-panel');
+    if (denarInsights[node.id]) {
+        panel.innerHTML = `<div class="title">Denaris Insight</div><div>${denarInsights[node.id]}</div>`;
+        panel.style.display = 'block';
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    const projEntries = Object.values(lastProjMap);
+    let found = false;
+    for (let i = 0; i < projEntries.length; i++) {
+        const { node: n, proj, size } = projEntries[i];
+        const dx = mx - proj.x;
+        const dy = my - proj.y;
+        if (dx * dx + dy * dy < (size + 5) * (size + 5)) {
+            hoveredNode = n;
+            showTooltip(n, mx, my);
+            showDenaris(n);
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        hoveredNode = null;
+        document.getElementById('tooltip').style.display = 'none';
+        document.getElementById('denaris-panel').style.display = 'none';
+    }
+});
+
+canvas.addEventListener('mouseleave', () => {
+    hoveredNode = null;
+    document.getElementById('tooltip').style.display = 'none';
+    document.getElementById('denaris-panel').style.display = 'none';
+});
+
+canvas.addEventListener('click', (e) => {
+    if (hoveredNode) {
+        // Toggle nucleus view: click same node to deactivate, different to switch
+        if (nucleusNode === hoveredNode) {
+            nucleusNode = null;
+            nucleusDistMap = {};
+        } else {
+            nucleusNode = hoveredNode;
+            computeNucleusDistances(hoveredNode.id);
+        }
+        renderDirty = true;
+        physics.unfreeze(200);
+    } else {
+        // Click empty space — clear nucleus view
+        if (nucleusNode) {
+            nucleusNode = null;
+            nucleusDistMap = {};
+            renderDirty = true;
+        }
+    }
+});
+
+// ============================================================================
+// UI CONTROLS
+// ============================================================================
+
+document.getElementById('btn-top').addEventListener('click', () => {
+    camera.setMode('top-down');
+    document.querySelectorAll('#controls button:not(#btn-freeze):not(#btn-reset)').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-top').classList.add('active');
+    document.getElementById('btn-pause-orbit').style.display = 'none';
+});
+
+document.getElementById('btn-side').addEventListener('click', () => {
+    camera.setMode('tilted');
+    document.querySelectorAll('#controls button:not(#btn-freeze):not(#btn-reset)').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-side').classList.add('active');
+    document.getElementById('btn-pause-orbit').style.display = 'none';
+});
+
+document.getElementById('btn-orbit').addEventListener('click', () => {
+    camera.setMode('auto-orbit');
+    document.querySelectorAll('#controls button:not(#btn-freeze):not(#btn-reset)').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-orbit').classList.add('active');
+    document.getElementById('btn-pause-orbit').style.display = 'inline-block';
+});
+
+document.getElementById('btn-pause-orbit').addEventListener('click', () => {
+    camera.autoRotate = !camera.autoRotate;
+    document.getElementById('btn-pause-orbit').textContent = camera.autoRotate ? 'Pause' : 'Resume';
+    document.getElementById('btn-pause-orbit').classList.toggle('active', !camera.autoRotate);
+});
+
+document.getElementById('btn-zoom-in').addEventListener('click', () => camera.zoomIn());
+document.getElementById('btn-zoom-out').addEventListener('click', () => camera.zoomOut());
+document.getElementById('btn-zoom-reset').addEventListener('click', () => camera.resetZoom());
+
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+        camera.zoomIn();
+    } else {
+        camera.zoomOut();
+    }
+}, { passive: false });
+
+let isDragging = false;
+let isPanning = false;
+let dragStartX = 0, dragStartY = 0;
+let panStartX = 0, panStartY = 0;
+let wasAutoRotating = false;
+
+canvas.addEventListener('mousedown', (e) => {
+    if (e.shiftKey) {
+        isPanning = true;
+        panStartX = e.clientX - camera.panX;
+        panStartY = e.clientY - camera.panY;
+    } else if (!hoveredNode) {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        wasAutoRotating = camera.autoRotate;
+        camera.autoRotate = false;
+    }
+    e.preventDefault();
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+        camera.panX = e.clientX - panStartX;
+        camera.panY = e.clientY - panStartY;
+    } else if (isDragging) {
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        camera.targetAngle += dx * 0.005;
+        camera.targetPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.targetPitch + dy * 0.005));
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        if (camera.mode !== 'auto-orbit') {
+            camera.mode = 'free';
+            document.querySelectorAll('#controls button:not(#btn-freeze):not(#btn-reset)').forEach(b => b.classList.remove('active'));
+        }
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (isDragging && wasAutoRotating && camera.mode === 'auto-orbit') {
+        camera.autoRotate = true;
+    }
+    isDragging = false;
+    isPanning = false;
+});
+
+document.getElementById('btn-freeze').addEventListener('click', () => {
+    physics.frozen = !physics.frozen;
+    if (physics.frozen) {
+        physics.graph.getNodes().forEach(n => { n.vx = n.vy = n.vz = 0; });
+    } else {
+        physics.unfreezeCounter = physics.config.UNFREEZE_FRAMES;
+    }
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+    physics.reset();
+    recomputeAll();
+});
+
+document.getElementById('show-bull').addEventListener('change', (e) => {
+    showBullCases = e.target.checked;
+    physics.unfreeze(200);
+    recomputeAll();
+});
+
+document.getElementById('show-labels').addEventListener('change', (e) => {
+    showLabels = e.target.checked;
+    invalidateRenderCache();
+});
+
+document.getElementById('show-edges').addEventListener('change', (e) => {
+    showEdges = e.target.checked;
+    invalidateRenderCache();
+});
+
+document.getElementById('show-rings').addEventListener('change', (e) => {
+    showRings = e.target.checked;
+    invalidateRenderCache();
+});
+
+document.querySelectorAll('.section-filter').forEach(checkbox => {
+    checkbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            activeSections.add(e.target.value);
+        } else {
+            activeSections.delete(e.target.value);
+        }
+        physics.unfreeze(200);
+        recomputeAll();
+    });
+});
+
+document.querySelectorAll('.edge-type-filter').forEach(checkbox => {
+    checkbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            activeEdgeTypes.add(e.target.value);
+        } else {
+            activeEdgeTypes.delete(e.target.value);
+        }
+        physics.unfreeze(200);
+        recomputeAll();
+    });
+});
+
+document.getElementById('slider-from').addEventListener('change', (e) => {
+    yearFrom = parseInt(e.target.value);
+    document.getElementById('year-from').textContent = yearFrom;
+    physics.unfreeze(200);
+    recomputeAll();
+});
+
+document.getElementById('slider-to').addEventListener('change', (e) => {
+    yearTo = parseInt(e.target.value);
+    document.getElementById('year-to').textContent = yearTo;
+    physics.unfreeze(200);
+    recomputeAll();
+});
+
+// ============================================================================
+// STRESS TEST FUNCTIONS
+// ============================================================================
+
+function stressTest(removeId) {
+    removedNodes.add(removeId);
+    physics.unfreeze(300);
+    recomputeAll();
+
+    const activeNodes = graph.getNodes().filter(n => !removedNodes.has(n.id));
+    const activeEdges = graph.getEdges().filter(e => !removedNodes.has(e.source) && !removedNodes.has(e.target));
+
+    const visited = new Set();
+    const adj = {};
+    activeNodes.forEach(n => { adj[n.id] = []; });
+    activeEdges.forEach(e => {
+        if (adj[e.source]) adj[e.source].push(e.target);
+        if (adj[e.target]) adj[e.target].push(e.source);
+    });
+
+    let components = 0;
+    activeNodes.forEach(n => {
+        if (!visited.has(n.id)) {
+            components++;
+            const q = [n.id];
+            while (q.length > 0) {
+                const v = q.pop();
+                if (visited.has(v)) continue;
+                visited.add(v);
+                (adj[v] || []).forEach(w => { if (!visited.has(w)) q.push(w); });
+            }
+        }
+    });
+
+    const orphaned = activeNodes.filter(n => {
+        return !activeEdges.some(e => e.source === n.id || e.target === n.id);
+    }).length;
+
+    document.getElementById('stress-result').innerHTML =
+        `Removed: ${Array.from(removedNodes).join(', ')}<br>` +
+        `Components: ${components} | Orphaned: ${orphaned} | Edges lost: ${graph.getEdges().length - activeEdges.length}`;
+    updateProjectionPanel();
+}
+
+function stressRestore() {
+    removedNodes.clear();
+    physics.unfreeze(300);
+    recomputeAll();
+    document.getElementById('stress-result').innerHTML = '';
+    updateProjectionPanel();
+}
+
+document.getElementById('btn-stress-bridge').addEventListener('click', () => {
+    let maxBc = -1, maxId = null;
+    Object.entries(betweenCent).forEach(([id, val]) => {
+        if (!removedNodes.has(id) && val > maxBc) { maxBc = val; maxId = id; }
+    });
+    if (maxId) stressTest(maxId);
+});
+
+document.getElementById('btn-stress-carry').addEventListener('click', () => {
+    stressTest('carry_spread');
+});
+
+document.getElementById('btn-stress-restore').addEventListener('click', stressRestore);
+
+// Macro-dynamic stress tests
+document.getElementById('btn-stress-oil').addEventListener('click', () => {
+    // Shock oil -40%: remove oil_fiscal, pemex_maturity, reduce weights on oil-linked edges
+    stressTest('oil_fiscal');
+    stressTest('pemex_maturity');
+});
+
+document.getElementById('btn-stress-rate').addEventListener('click', () => {
+    // US 200bp rate cut: removes carry_spread and real_rate_diff (spread collapses)
+    stressTest('carry_spread');
+    stressTest('real_rate_diff');
+});
+
+document.getElementById('btn-stress-afore').addEventListener('click', () => {
+    // Freeze AFORE inflows
+    stressTest('afore');
+});
+
+document.getElementById('btn-stress-ndf').addEventListener('click', () => {
+    // Remove NDF hedging program
+    stressTest('banxico_interv');
+    stressTest('bush_fx');
+});
+
+document.getElementById('btn-stress-fiscal').addEventListener('click', () => {
+    // Fiscal slippage: fiscal consolidation narrative collapses
+    stressTest('fiscal_deficit_dyn');
+    stressTest('bull_fiscal');
+    stressTest('oil_fiscal');
+});
+
+document.getElementById('btn-stress-sudden').addEventListener('click', () => {
+    // Sudden stop: foreign capital flight
+    stressTest('fdijb');
+    stressTest('carry_derivatives');
+    stressTest('cftc_mxn');
+    stressTest('private_fx_debt');
+});
+
+document.getElementById('btn-stress-compound').addEventListener('click', () => {
+    // Compound crisis: sudden stop + carry collapse + fiscal slippage simultaneously
+    // This is how real crises occur — multi-vector, simultaneous
+    stressTest('carry_spread');
+    stressTest('real_rate_diff');
+    stressTest('fdijb');
+    stressTest('carry_derivatives');
+    stressTest('cftc_mxn');
+    stressTest('private_fx_debt');
+    stressTest('fiscal_deficit_dyn');
+    stressTest('bull_fiscal');
+    stressTest('oil_fiscal');
+    stressTest('banxico_interv');
+});
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+recomputeAll();
+animate();
+
+document.getElementById('sim-state').textContent = 'Active';
+
+setInterval(() => {
+    document.getElementById('stats').textContent =
+        `Nodes: ${cachedNodeCount} | Edges: ${cachedEdgeCount} | Camera: ${camera.mode} | Zoom: ${camera.zoom.toFixed(1)}x | Sim: ${physics.frozen ? 'Frozen' : 'Active'}`;
+    document.getElementById('zoom-level').textContent = camera.zoom.toFixed(1) + 'x';
+}, 500);
+
+window.addEventListener('resize', () => {
+    CONFIG.WIDTH = window.innerWidth;
+    CONFIG.HEIGHT = window.innerHeight;
+    CONFIG.CENTER_X = window.innerWidth / 2;
+    CONFIG.CENTER_Y = (window.innerHeight - 60) / 2 + 60;
+    canvas.width = CONFIG.WIDTH;
+    canvas.height = CONFIG.HEIGHT;
+});
+
+</script>
+
+</body>
+</html>
